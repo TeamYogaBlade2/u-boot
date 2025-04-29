@@ -9,6 +9,13 @@ config SYS_VENDOR
 choice
 	prompt "MediaTek board select"
 
+config TARGET_MT6589
+	bool "MediaTek MT6589 SoC"
+	select CPU_V7A
+	help
+	  The MediaTek MT6589 is a ARM-based SoC with a quad-core Cortex-A7
+	  including NEON and GPU, PowerVR SGX544, and so on.
+
 config TARGET_MT7622
 	bool "MediaTek MT7622 SoC"
 	select ARM64
@@ -164,5 +171,7 @@ config MTK_TZ_MOVABLE
 	select ARCH_MISC_INIT
 	select OF_SYSTEM_SETUP
 	bool
+
+source "arch/arm/mach-mediatek/mt6589/Kconfig"
 
 endif

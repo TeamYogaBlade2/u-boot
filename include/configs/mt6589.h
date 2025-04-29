@@ -1,0 +1,6 @@
+#ifndef __CONFIG_MT6589_H
+#define __CONFIG_MT6589_H
+
+#define CFG_SYS_SDRAM_BASE	0x80000000
+
+#endif

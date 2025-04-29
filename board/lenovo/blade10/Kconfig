@@ -1,0 +1,12 @@
+if TARGET_BLADE10
+
+config SYS_BOARD
+	default "blade10"
+
+config SYS_VENDOR
+	default "lenovo"
+
+config SYS_CONFIG_NAME
+	default "blade10"
+
+endif
