@@ -14,7 +14,6 @@
 #include <cust_gpio_usage.h>
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/mach-types.h>
-#include <common.h>
 /*----------------------------------------------------------------------------*/
 //  Error Code No.
 #define RSUCCESS        0

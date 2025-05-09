@@ -39,6 +39,6 @@ obj-y += mt6575.o \
   irq.o \
   mt_pmic_wrap_uboot.o \
   mtk_pmic_6320.o \
-  lowlevel_init.o
-
-###	custom/$(MTK_PROJECT)/mt65xx_partition.o \
+  lowlevel_init.o \
+  mt65xx_partition.o \
+  mt65xx_lcm_list.c

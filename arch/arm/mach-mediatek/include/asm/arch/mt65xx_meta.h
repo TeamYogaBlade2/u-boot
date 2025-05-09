@@ -25,7 +25,6 @@
 #ifndef __MT6573_META_H
 #define __MT6573_META_H
 
-#include <common.h>
 #include <asm/arch/mt65xx_typedefs.h>
 
 #define META_BOOTARGS  " init=sbin/meta_init rdinit=sbin/meta_init"

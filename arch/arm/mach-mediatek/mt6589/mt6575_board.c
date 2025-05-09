@@ -22,11 +22,17 @@
  * MA 02111-1307 USA
  */
 
+#include <config.h>
+#include <mmc.h>
+
 #include <asm/arch/mt65xx_disp_drv.h>
 //#include <asm/arch/mt65xx_logo.h>     //Remove tmp for 6575 fpga porting
 #include <asm/arch/mtk_uart.h>
 #include <asm/arch/mtk_serial.h>
 #include <asm/arch/mtk_wdt.h>
+#include <asm/arch/boot_mode.h>
+#include <asm/arch/mt_pmic_wrap_uboot.h>
+#include <asm/arch/mt6575_gpio.h>
 
 #include <asm/io.h>
 #include <asm/mach-types.h>
@@ -60,6 +66,9 @@ extern void mt65xx_pmu_init(void);
 #ifdef CFG_HAS_USB
 extern int	drv_usbtty_init (void);
 #endif
+
+extern int mboot_common_load_logo(unsigned long logo_addr, char* filename);
+extern int mmc_legacy_init(int verbose);
 
 #if 1
 void Uboot_power_saving(void)
@@ -305,7 +314,7 @@ int board_init (void)
 
   mtk_wdt_init(); // Modify mtk_wdt.h can select dummy function.
   mt6575_pinmux_init();
-  gd->bd->bi_arch_number = MACH_TYPE_MT6589;	/* board id for linux */
+  gd->bd->bi_arch_number = MACH_TYPE_MT65XX;	/* board id for linux */
   gd->bd->bi_boot_params = CFG_BOOTARGS_ADDR; /* address of boot parameters */
 
 #if 0 //Remove tmp for 6575 porting

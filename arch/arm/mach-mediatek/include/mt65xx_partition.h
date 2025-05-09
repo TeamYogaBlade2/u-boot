@@ -71,7 +71,7 @@ typedef struct part_dev part_dev_t;
 struct part_dev {
     int init;
     int id;
-    block_dev_desc_t *blkdev;
+    struct blk_desc *blkdev;
     int (*init_dev) (int id);
 #ifdef MTK_EMMC_SUPPORT
 	int (*read)  (part_dev_t *dev, u64 src, uchar *dst, int size);

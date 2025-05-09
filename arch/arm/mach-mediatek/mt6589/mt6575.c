@@ -58,11 +58,13 @@
 #include <asm/mach-types.h>
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/arch/boot_mode.h>
+#include <asm/arch/mtk_timer.h>
 #include <config.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 extern int Uboot_power_saving(void);
 extern void cpu_clean_env (void);
+extern BOOL recovery_detection(void);
 
 static inline void delay (unsigned long loops)
 {

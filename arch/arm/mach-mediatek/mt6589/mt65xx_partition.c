@@ -280,7 +280,7 @@ int mt6575_part_generic_read(part_dev_t *dev, ulong src, uchar *dst, int size)
 {
     int dev_id = dev->id;
     uchar *buf = &mt6575_part_buf[0];
-    block_dev_desc_t *blkdev = dev->blkdev;
+    struct blk_desc *blkdev = dev->blkdev;
 	ulong end, part_start, part_end, part_len, aligned_start, aligned_end;
     ulong blknr, blkcnt;
 
@@ -332,7 +332,7 @@ static int mt6575_part_generic_write(part_dev_t *dev, uchar *src, ulong dst, int
 {
     int dev_id = dev->id;
     uchar *buf = &mt6575_part_buf[0];
-    block_dev_desc_t *blkdev = dev->blkdev;
+    struct blk_desc *blkdev = dev->blkdev;
 	ulong end, part_start, part_end, part_len, aligned_start, aligned_end;
     ulong blknr, blkcnt;
 

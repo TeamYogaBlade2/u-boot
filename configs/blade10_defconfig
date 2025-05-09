@@ -6,8 +6,9 @@ CONFIG_DEFAULT_DEVICE_TREE="mt6589-blade10"
 
 # mediatek/custom/mt6589/uboot/config.mk
 CONFIG_TEXT_BASE=0x81E00000
-# Base addr + ~300KB (lk.bin size)
-CONFIG_SYS_LOAD_ADDR=0x80054000
+
+CONFIG_SYS_LOAD_ADDR=0x84000000
+# CONFIG_SYS_LOAD_ADDR=0x00000000 ?
 
 # testing (from MT7623)
 CONFIG_HAS_CUSTOM_SYS_INIT_SP_ADDR=y
@@ -23,8 +24,10 @@ CONFIG_SYSRESET=y
 #
 # CONFIGURATION
 #
-CONFIG_L2_OFF=y # mt6575 fpga does not have L2 cache yet
-CONFIG_MTD_NOR_FLASH=y # no support for nor flash
+# mt6575 fpga does not have L2 cache yet
+CONFIG_L2_OFF=y
+# no support for nor flash
+CONFIG_MTD_NOR_FLASH=y
 
 #
 # UART/SERIAL
@@ -33,21 +36,22 @@ CONFIG_SERIAL1=y
 CONFIG_CONS_INDEX=1
 CONFIG_BAUDRATE=921600
 CONFIG_SYSCLK=13500000
-CONFIG_SYS_BAUDRATE_TABLE={115200, 921600} # bug?
+CONFIG_SYS_BAUDRATE_TABLE={115200, 921600}
 
 #
 # DRAM
 #
-CONFIG_NR_DRAM_BANKS=DRAM_BANKS_NR
+CONFIG_NR_DRAM_BANKS=1
 
-CONFIG_SYS_MEMTEST_START=(SDRAM_BASE+SZ_8M)
-CONFIG_SYS_MEMTEST_END=(SDRAM_BASE+SZ_16M)
+#CONFIG_SYS_MEMTEST_START=(SDRAM_BASE+SZ_8M)
+#CONFIG_SYS_MEMTEST_END=(SDRAM_BASE+SZ_16M)
 
 #
 # NAND FLASH
 #
 #ifdef CFG_NAND_BOOT
-CONFIG_SYS_MAX_NAND_DEVICE=1 # max. number of NAND devices
+# max. number of NAND devices
+CONFIG_SYS_MAX_NAND_DEVICE=1
 CONFIG_SYS_NAND_CS=1
 CONFIG_SYS_NAND_ADDR=0x80032000
 CONFIG_SYS_NAND_BASE=CONFIG_SYS_NAND_ADDR
@@ -57,7 +61,8 @@ CONFIG_SYS_NAND_SELECT_DEVICE=y
 #
 # JFFS2 PARTITIONS
 #
-#undef CONFIG_JFFS2_CMDLINE # will increase a lot of size
+# will increase a lot of size
+#undef CONFIG_JFFS2_CMDLINE
 
 #ifdef CFG_NAND_BOOT
 #CONFIG_JFFS2_CMDLINE=y
@@ -67,16 +72,16 @@ CONFIG_JFFS2_DEV="uboot"
 CONFIG_JFFS2_PART_SIZE=0x00080000
 CONFIG_JFFS2_PART_OFFSET=0x00000000
 #endif
-#endif # CFG_NAND_BOOT
+#endif
 
 #
 # MMC/SD CARD
 #
 #if defined(CFG_MMC_BOOT) || defined(CFG_MMC_FACTORY)
-CONFIG_MMC=1 # y?
+CONFIG_MMC=y
 #endif
 
-CONFIG_DOS_PARTITION=1 # y?
+CONFIG_DOS_PARTITION=y
 
 #
 # U-BOOT ENVIRONMENT
@@ -86,50 +91,65 @@ CONFIG_MISC_INIT_R=y
 # allow to overwrite serial and ethaddr
 CONFIG_ENV_OVERWRITE=y
 
-CONFIG_SYS_LOAD_ADDR=0x00000000
+#CONFIG_SYS_LOAD_ADDR=0x00000000
 
 # Size of malloc() pool
-CONFIG_ENV_SIZE=0x00020000 # (SZ_128K)
-CONFIG_SYS_MALLOC_LEN=(CONFIG_ENV_SIZE + SZ_512K) # FIXME:
+CONFIG_ENV_SIZE=0x00020000
+#(CONFIG_ENV_SIZE + SZ_512K)
+CONFIG_SYS_MALLOC_LEN=0xA0000
 CONFIG_SYS_GBL_DATA_SIZE=128
 
 #
 # Miscellaneous configurable options
 #
-CONFIG_SYS_LONGHELP=1 # y?
+CONFIG_SYS_LONGHELP=y
 CONFIG_SYS_PROMPT="u-boot> "
-CONFIG_SYS_CBSIZE=256 # Console I/O Buffer Size
+# Console I/O Buffer Size
+CONFIG_SYS_CBSIZE=256
 
 # Print Buffer Size
-CONFIG_SYS_PBSIZE=(CONFIG_SYS_CBSIZE + sizeof("u-boot> ") + 16) # FIXME:
-CONFIG_SYS_MAXARGS=16 # max number of command args
-CONFIG_SYS_BARGSIZE=CONFIG_SYS_CBSIZE # Boot Argument Buffer Size
+#(CONFIG_SYS_CBSIZE + sizeof("u-boot> ") + 16)
+CONFIG_SYS_PBSIZE=280
+# max number of command args
+CONFIG_SYS_MAXARGS=16
+# Boot Argument Buffer Size: CONFIG_SYS_CBSIZE
+CONFIG_SYS_BARGSIZE=256
 
-CONFIG_SYS_MONITOR_BASE=TEXT_BASE
-CONFIG_SYS_MONITOR_LEN=0x00020000 # SZ_128K # Reserve 1 sector
+# CONFIG_TEXT_BASE
+CONFIG_SYS_MONITOR_BASE=0x81E00000
+# Reserve 1 sector: 0x00020000
+CONFIG_SYS_MONITOR_LEN=131072
 
 #ifdef CFG_NAND_BOOT
-CONFIG_ENV_ADDR=(CONFIG_SYS_MONITOR_BASE + CONFIG_SYS_MONITOR_LEN) # FIXME:
-CONFIG_ENV_OFFSET=(CONFIG_ENV_ADDR + CONFIG_SYS_MONITOR_LEN) # Environment after Monitor
-CONFIG_ENV_IS_NOWHERE=1 # y?
+#(CONFIG_SYS_MONITOR_BASE + CONFIG_SYS_MONITOR_LEN)
+CONFIG_ENV_ADDR=0x81E20000
+# Environment after Monitor
+#(CONFIG_ENV_ADDR + CONFIG_SYS_MONITOR_LEN)
+CONFIG_ENV_OFFSET=0x81E40000
+CONFIG_ENV_IS_NOWHERE=y
 #else
-CONFIG_ENV_ADDR=(CONFIG_ENV_ADDR + CONFIG_SYS_MONITOR_LEN)
-CONFIG_ENV_OFFSET=(CONFIG_ENV_ADDR + CONFIG_SYS_MONITOR_LEN) # Environment after Monitor
+# WTF!?
+#CONFIG_ENV_ADDR=(CONFIG_ENV_ADDR + CONFIG_SYS_MONITOR_LEN)
+# Environment after Monitor
+#CONFIG_ENV_OFFSET=(CONFIG_ENV_ADDR + CONFIG_SYS_MONITOR_LEN)
 CONFIG_ENV_IS_NOWHERE=y
 #endif
 
 #
 # U-BOOT AUTOBOOT
 #
-CONFIG_BOOTDELAY=5 # autoboot after in secs
-CONFIG_BOOTCOMMAND="msdc_boot;nand_boot" # autoboot command
+# autoboot after in secs
+CONFIG_BOOTDELAY=5
+# autoboot command
+CONFIG_BOOTCOMMAND="msdc_boot;nand_boot"
 
 #
 # U-BOOT COMMANDS
 #
 # Basic Command
 #ifdef CFG_NAND_BOOT
-CONFIG_CMD_NAND=y # Hong-Rong: Open to develope nand driver
+# Hong-Rong: Open to develope nand driver
+CONFIG_CMD_NAND=y
 #endif
 
 ######################################################################
@@ -139,20 +159,22 @@ CONFIG_SYS_HZ=1000
 #
 # LINUX KERNEL BOOTARGS
 #
-CONFIG_CMDLINE_TAG=1 # y? # enable passing of ATAGs
-CONFIG_SETUP_MEMORY_TAGS=1 # y?
-CONFIG_INITRD_TAG=1 # y?
-CONFIG_REVISION_TAG=1 # y?
+# enable passing of ATAGs
+CONFIG_CMDLINE_TAG=y
+CONFIG_SETUP_MEMORY_TAGS=y
+CONFIG_INITRD_TAG=y
+CONFIG_REVISION_TAG=y
 
-
-CONFIG_VIDEOLFB_TAG=1 # y? # if lcm is NOT inited, don't pass video LFB param to kernel
+## if lcm is NOT inited, don't pass video LFB param to kernel
+CONFIG_VIDEOLFB_TAG=y
 
 # Jau Modify  64M -> 128M --> 122M
 
 #ifdef CFG_NET_BOOT
-#define CONFIG_BOOTARGS "mem=32M console=ttyMT0,921600n8 noinitrd root=/dev/nfs rw nfsroot=128.247.77.158:/home/a0384864/wtbu/rootfs ip=dhcp"
+CONFIG_BOOTARGS "mem=32M console=ttyMT0,921600n8 noinitrd root=/dev/nfs rw nfsroot=128.247.77.158:/home/a0384864/wtbu/rootfs ip=dhcp"
 #else
-CONFIG_BOOTARGS="console=tty0 console=ttyMT0,921600n1 root=/dev/ram" # Hong-Rong: modify for MT6575 IT
+# Hong-Rong: modify for MT6575 I
+CONFIG_BOOTARGS="console=tty0 console=ttyMT0,921600n1 root=/dev/ram"
 #endif
 
 #
@@ -172,17 +194,21 @@ CONFIG_USBD_PRODUCTID=0x2000
 #-----------------------------------------------------------------------
 # FLASH organization
 #
-CONFIG_SYS_MAX_FLASH_BANKS=1 # Max number of flash banks
-CONFIG_SYS_MAX_FLASH_SECT=128 # Max number of sectors per flash
+# Max number of flash banks
+CONFIG_SYS_MAX_FLASH_BANKS=1
+# Max number of sectors per flash
+CONFIG_SYS_MAX_FLASH_SECT=128
 
-CONFIG_SYS_FLASH_ERASE_TOUT=120000 # Timeout for Flash Erase (in ms)
-CONFIG_SYS_FLASH_WRITE_TOUT=500 # Timeout for Flash Write (in ms)
+# Timeout for Flash Erase (in ms)
+CONFIG_SYS_FLASH_ERASE_TOUT=120000
+# Timeout for Flash Write (in ms)
+CONFIG_SYS_FLASH_WRITE_TOUT=500
 #
 # Use the CFI flash driver for ease of use
 #
 #undef CONFIG_SYS_FLASH_CFI
 #undef CONFIG_FLASH_CFI_DRIVER
-CONFIG_ENV_IS_IN_FLASH=0
+CONFIG_ENV_IS_IN_FLASH=n
 
 #
 # MMU / Cache Operation

@@ -37,6 +37,7 @@
 #ifndef _MTK_DVC_TEST_TYPEDEFS_H
 #define _MTK_DVC_TEST_TYPEDEFS_H
 
+#include <stdbool.h>
 
 /*==== CONSTANTS ==================================================*/
 
