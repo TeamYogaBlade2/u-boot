@@ -33,6 +33,7 @@
 #include <asm/arch/mt65xx_image.h>
 #include <asm/arch/mtk_timer.h>
 #include <config.h>
+#include <asm/global_data.h>
 
 #define MODULE_NAME "MBOOT"
 

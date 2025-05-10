@@ -4,7 +4,6 @@
 //#include <mt6575.h>
 //#include <mt6575_timer.h>
 
-#include <common.h>
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/mt65xx_typedefs.h>
 

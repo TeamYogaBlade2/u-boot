@@ -17,7 +17,6 @@
 * Author : Changlei Gao (changlei.gao@mediatek.com)                              
 ********************************************************************************
 */
-#include <common.h>
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/mt6575_pwm.h>  
 #include <asm/arch/mt65xx_typedefs.h>

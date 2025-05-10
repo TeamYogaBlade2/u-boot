@@ -60,6 +60,7 @@
 #include <asm/arch/boot_mode.h>
 #include <asm/arch/mtk_timer.h>
 #include <config.h>
+#include <asm/global_data.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 extern int Uboot_power_saving(void);

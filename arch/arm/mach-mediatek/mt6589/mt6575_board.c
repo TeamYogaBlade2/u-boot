@@ -33,6 +33,7 @@
 #include <asm/arch/boot_mode.h>
 #include <asm/arch/mt_pmic_wrap_uboot.h>
 #include <asm/arch/mt6575_gpio.h>
+#include <asm/global_data.h>
 
 #include <asm/io.h>
 #include <asm/mach-types.h>

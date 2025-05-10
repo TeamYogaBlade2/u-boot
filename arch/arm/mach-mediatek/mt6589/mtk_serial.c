@@ -23,6 +23,7 @@
  */
 
 #include <asm/io.h>
+#include <asm/global_data.h>
 #include <asm/arch/boot_mode.h>
 #include <asm/arch/mtk_uart.h>
 #include <asm/arch/mtk_serial.h>

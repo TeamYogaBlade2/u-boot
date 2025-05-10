@@ -36,7 +36,6 @@
 #ifndef __MT6575_LOGO_H__
 #define __MT6575_LOGO_H__
 
-#include <common.h>
 #include <asm/arch/mt65xx_typedefs.h>
 
 #ifdef __cplusplus

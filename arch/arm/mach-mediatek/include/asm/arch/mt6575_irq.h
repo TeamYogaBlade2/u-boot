@@ -171,5 +171,7 @@ struct mtk_irq_mask
 #define MT65xx_POLARITY_LOW   0
 #define MT65xx_POLARITY_HIGH  1
 
+void mt6575_irq_set_sens(unsigned int irq, unsigned int sens);
+void mt6575_irq_set_polarity(unsigned int irq, unsigned int polarity);
 
 #endif  /* !__MT6575_IRQ_H__ */

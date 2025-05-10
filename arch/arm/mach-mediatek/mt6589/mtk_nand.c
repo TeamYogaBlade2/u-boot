@@ -1,7 +1,6 @@
-#include <common.h>
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/mt65xx_typedefs.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include "cust_nand.h"
 #include <asm/io.h>
 #include <asm/arch/mtk_nand.h>

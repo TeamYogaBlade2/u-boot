@@ -3,7 +3,6 @@
 //#include <mt6575_pdn_sw.h>
 //#include <mt6575_i2c.h>
 
-#include <common.h>
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/arch/mt6575_i2c.h>

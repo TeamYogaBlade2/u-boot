@@ -22,7 +22,6 @@
  * MA 02111-1307 USA
  */
 
-#include <common.h>
 #include <exports.h>
 #include <asm/errno.h>
 #include "config.h"

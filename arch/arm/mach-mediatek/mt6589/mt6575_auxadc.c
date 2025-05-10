@@ -17,7 +17,6 @@
  * James Lo
  *
  ****************************************************************************/
-#include <common.h>
 #include <asm/io.h>
 
 #include <asm/arch/mt6575_auxadc_sw.h>

@@ -1,4 +1,3 @@
-#include <common.h>
 #include "mt65xx_partition.h"
 
 part_t partition_layout[] = {

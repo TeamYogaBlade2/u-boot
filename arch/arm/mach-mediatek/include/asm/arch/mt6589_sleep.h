@@ -1,5 +1,3 @@
-#include <common.h>
-
 #include <asm/io.h>
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/boot_mode.h>

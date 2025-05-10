@@ -1,6 +1,8 @@
+#include <asm/global_data.h>
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/arch/mt6575_irq.h>
+#include <asm/arch/mtk_timer.h>
 
 #define GPT4_CON                    ((P_U32)(APMCU_GPTIMER_BASE+0x0040))
 #define GPT4_CLK                    ((P_U32)(APMCU_GPTIMER_BASE+0x0044))

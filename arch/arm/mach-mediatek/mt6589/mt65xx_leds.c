@@ -8,7 +8,6 @@
  ******************************************************************************/
 
 #if 0
-#include <common.h>
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/mt65xx_typedefs.h>
 

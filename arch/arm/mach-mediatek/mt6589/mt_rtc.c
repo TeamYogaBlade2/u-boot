@@ -18,7 +18,7 @@
  * MA 02111-1307 USA
  */
 
-#include <common.h>
+#include <stdio.h>
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/arch/mt_rtc.h>
 #include <asm/arch/boot_mode.h>
