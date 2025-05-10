@@ -12,6 +12,7 @@
 #include <asm/arch/mt65xx_typedefs.h>
 #include <cust_gpio_boot.h>
 #include <asm/io.h>
+#include <linux/compat.h>
 /*----------------------------------------------------------------------------*/
 #define GPIOTAG "[GPIO] "
 #define GPIODBG(fmt, arg...)    printf( GPIOTAG "%s: " fmt, __FUNCTION__ ,##arg)

@@ -14,6 +14,12 @@
 #include <cust_gpio_usage.h>
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/mach-types.h>
+
+typedef U8 u8;
+typedef U16 u16;
+typedef U32 u32;
+typedef S32 s32;
+
 /*----------------------------------------------------------------------------*/
 //  Error Code No.
 #define RSUCCESS        0

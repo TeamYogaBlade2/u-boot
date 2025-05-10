@@ -8,6 +8,7 @@
  *
  ******************************************************************************/
 
+#include <asm/arch/mt65xx.h>
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/arch/mt6575_gpio.h>
 #include <asm/io.h>

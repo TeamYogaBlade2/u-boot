@@ -3420,7 +3420,7 @@ int mmc_block_read(int dev_num, unsigned long blknr, u32 blkcnt, unsigned long *
     int ret;
 
 	//printf("[SD%d] virt addr:%ld\n",dev_num,blknr);
-	mmc_virt_switch(blknr, &blknr);
+	mmc_virt_switch(blknr, (u32 *)&blknr);
 	//printf("[SD%d] phys addr:%ld\n",dev_num,blknr);
     if (!blkcnt)
         return MMC_ERR_NONE;
@@ -3457,7 +3457,7 @@ int mmc_block_write(int dev_num, unsigned long blknr, u32 blkcnt, unsigned long 
     int ret;
 
 	//printf("virt addr:%ld\n",dev_num,blknr);
-	mmc_virt_switch(blknr, &blknr);
+	mmc_virt_switch(blknr, (u32 *)&blknr);
 	//printf("phys addr:%ld\n",dev_num,blknr);
     if (!blkcnt)
         return MMC_ERR_NONE;

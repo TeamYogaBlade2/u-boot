@@ -24,8 +24,7 @@ static S32 pwrap_read_nochk( U32  adr, U32 *rdata );
 static S32 pwrap_write_nochk( U32  adr, U32  wdata );
 static S32 _pwrap_wacs2_nochk( U32 write, U32 adr, U32 wdata, U32 *rdata );
 static S32 pwrap_init ( void );
-//#define PWRAP_PRELOADER_PORTING
-#ifdef PWRAP_PRELOADER_PORTING
+#ifdef CFG_MT6589_FPGA
 int  pwrap_init_for_early_porting(void);
 #endif
 //---end--internal API--------------------------------------------------
@@ -39,7 +38,6 @@ pmic_wrap register define
 #define INFRA_SYS_CFG_BASE        (0x10001000)
 #define PERICFG_BASE              (0x10003000)
 #define AP_RGU_BASE              (0x10000000)
-#define INFRACFG_BASE               0x10001000
 
 #define DEW_BASE  (0xBC00)
 //-------macro for pmic register--------------------------------

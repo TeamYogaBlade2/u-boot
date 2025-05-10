@@ -255,7 +255,7 @@ static int get_uart_port_id(void);
 void mtk_serial_init(void)
 {
 
-	gd->bd->bi_baudrate = CONFIG_BAUDRATE;
+	gd->baudrate = CONFIG_BAUDRATE;
 
 #ifdef CFG_META_MODE
 	mtk_serial_set_current_uart(UART1);	

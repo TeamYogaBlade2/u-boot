@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include <config.h>
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/mt65xx_typedefs.h>
 #include <cust_key.h>
@@ -26,8 +27,8 @@
 #include <asm/arch/boot_mode.h>
 #include <asm/arch/mtk_pmic_6320.h>
 
-extern pmic_detect_powerkey(void);
-extern pmic_detect_homekey(void);
+extern int pmic_detect_powerkey(void);
+extern int pmic_detect_homekey(void);
 
 #define KPD_UBOOT_TEST 0
 
@@ -51,7 +52,7 @@ static u16 kpd_keymap_state[5] = {
 #endif
 
 
-void set_kpd_pmic_mode()
+void set_kpd_pmic_mode(void)
 {
 	*(volatile u16 *)(KP_BASE+0x1C) = 0x1;
 	printf("kpd register for pmic set!\n");
@@ -161,7 +162,7 @@ bool mtk_detect_key(unsigned short key)	/* key: HW keycode */
 
 bool mtk_detect_pmic_just_rst()
 {
-	kal_uint8 just_rst;
+	U32 just_rst;
 	
 	printf("detecting pmic just reset\n");
 		pmic_read_interface(0x15, &just_rst, 0x01, 0x07);

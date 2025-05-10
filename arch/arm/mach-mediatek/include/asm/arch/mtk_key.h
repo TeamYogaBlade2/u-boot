@@ -18,7 +18,7 @@
 
 void set_kpd_pmic_mode();
 
-extern bool mt6575_detect_key(unsigned short key);
-extern bool mt6575_detect_pmic_just_rst(void);
+extern bool mtk_detect_key(unsigned short key);
+extern bool mtk_detect_pmic_just_rst(void);
 
 #endif /* __MT6575_KEY_H__ */

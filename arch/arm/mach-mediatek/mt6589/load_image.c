@@ -839,7 +839,7 @@ exit:
  * Description: load raw data for recovery mode support
  *
  **********************************************************/
-int mboot_recovery_load_raw_part(char *part_name, unsigned long *addr, unsigned int size)
+int mboot_recovery_load_raw_part(char *part_name, unsigned char *addr, unsigned int size)
 {
     long len;
 	unsigned long begin;
@@ -881,7 +881,7 @@ exit:
  * Description: load recovery command
  *
  **********************************************************/
-int mboot_recovery_load_misc(unsigned long *misc_addr, unsigned int size)
+int mboot_recovery_load_misc(unsigned char *misc_addr, unsigned int size)
 {
     int ret;
 

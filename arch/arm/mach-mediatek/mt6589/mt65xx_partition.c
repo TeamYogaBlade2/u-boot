@@ -23,7 +23,7 @@
  */
 
 #include <exports.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include "config.h"
 #include "mt65xx_partition.h"
 #include "pmt.h"

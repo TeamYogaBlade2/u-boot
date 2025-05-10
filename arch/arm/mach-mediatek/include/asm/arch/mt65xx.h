@@ -316,6 +316,4 @@
 #define UBOOT_TRACER 
 #endif
 
-#define dsb() __asm__ __volatile__ ("dsb" : : : "memory")
-
 #endif  /* !__MT6575_H__ */

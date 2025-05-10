@@ -75,13 +75,11 @@
 #include <version.h>
 #include <stdarg.h>
 #include <linux/types.h>
-#include <lcd.h>
-#include <video_fb.h>
 #include <mmc.h>
 #include <part.h>
 #include <fat.h>
 #include <malloc.h>
-#include <asm/errno.h>
+#include <linux/errno.h>
 #include <asm/io.h>
 #include <asm/arch/boot_mode.h>
 #include <asm/arch/mt65xx.h>

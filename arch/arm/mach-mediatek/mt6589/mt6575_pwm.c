@@ -21,6 +21,7 @@
 #include <asm/arch/mt6575_pwm.h>  
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/io.h>
+#include <linux/delay.h>
 
 #ifdef PWM_DEBUG
 	#define PWMDBG(fmt, args ...) printf("pwm %5d: " fmt, __LINE__,##args)

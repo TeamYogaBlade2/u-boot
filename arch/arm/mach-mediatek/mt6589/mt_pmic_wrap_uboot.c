@@ -267,7 +267,6 @@ FAIL:
   return return_value;
 }
 //#############################################################################################
-//#define PWRAP_EARLY_PORTING
 #ifdef CFG_MT6589_FPGA
 static S32 pwrap_read_nochk( U32  adr, U32 *rdata )
 {
@@ -925,4 +924,4 @@ int  pwrap_init_for_early_porting(void)
     }
 
 }
-#endif //PWRAP_EARLY_PORTING
+#endif //CFG_MT6589_FPGA

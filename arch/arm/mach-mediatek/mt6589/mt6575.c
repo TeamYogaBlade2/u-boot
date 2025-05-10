@@ -61,6 +61,7 @@
 #include <asm/arch/mtk_timer.h>
 #include <config.h>
 #include <asm/global_data.h>
+#include <video.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 extern int Uboot_power_saving(void);
@@ -149,28 +150,28 @@ int mt65xx_sw_env (void)
     switch(g_boot_mode)
     {        
          case META_BOOT :
-	         video_printf(" => META MODE\n");
+	         video_puts(" => META MODE\n");
 	         break;
 	     case FACTORY_BOOT :
-	         video_printf(" => FACTORY MODE\n");
+	         video_puts(" => FACTORY MODE\n");
 	         break;
 	     case RECOVERY_BOOT :
-	         video_printf(" => RECOVERY MODE\n");
+	         video_puts(" => RECOVERY MODE\n");
 	         break;
 	     case SW_REBOOT :
-	         //video_printf(" => SW RESET\n");
+	         //video_puts(" => SW RESET\n");
 	         break;
 	     case NORMAL_BOOT :
-	         video_printf(" => NORMAL BOOT\n");
+	         video_puts(" => NORMAL BOOT\n");
 	         break;
          case ADVMETA_BOOT:
-            video_printf(" => ADVANCED META MODE\n");
+            video_puts(" => ADVANCED META MODE\n");
             break;
 		   case ATE_FACTORY_BOOT:
-            video_printf(" => ATE FACTORY MODE\n");
+            video_puts(" => ATE FACTORY MODE\n");
 		        break;     
 	     default :
-                 video_printf(" => UNKNOWN BOOT\n");
+                 video_puts(" => UNKNOWN BOOT\n");
     }
     return 0;
 #endif    

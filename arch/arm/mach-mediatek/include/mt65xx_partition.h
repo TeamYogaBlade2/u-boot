@@ -41,14 +41,6 @@
 #define PART_BLKS_FAT   BLK_NUM(PART_SIZE_FAT)
 
 
-struct NAND_CMD{
-	u32	u4ColAddr;
-	u32 u4RowAddr;
-	u32 u4OOBRowAddr;
-	u8	au1OOB[64];
-	u8*	pDataBuf;
-};
-
 typedef union {
     struct {    
         unsigned int magic;        /* partition magic */

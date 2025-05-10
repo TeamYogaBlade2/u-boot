@@ -66,8 +66,6 @@
 #include <stdarg.h>
 #include <linux/types.h>
 //#include <devices.h>
-#include <lcd.h>
-#include <video_fb.h>
 
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/disp_drv_platform.h>

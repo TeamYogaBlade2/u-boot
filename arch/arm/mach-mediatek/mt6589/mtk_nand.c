@@ -4,7 +4,7 @@
 #include "cust_nand.h"
 #include <asm/io.h>
 #include <asm/arch/mtk_nand.h>
-#include "nand_device_list.h"
+//#include "nand_device_list.h"
 #include "mt65xx_partition.h"
 #include <asm/arch/bmt.h>
 //#include "nand_customer.h"

@@ -7,6 +7,8 @@
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/arch/mt6589_i2c.h>
 
+#include <stdio.h>
+
 /*-----------------------------------------------------------------------
  * Set I2C Speend interface:    Set internal I2C speed, 
  *                              Goal is that get sample_cnt_div and step_cnt_div

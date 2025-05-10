@@ -2,6 +2,7 @@
 #define _MSDC_UTILS_H_
 
 #include <asm/arch/msdc_types.h>
+#include <linux/kernel.h>
 
 /* Debug message event */
 #define MSG_EVT_NONE        0x00000000	/* No event */
@@ -146,13 +147,6 @@ extern void msdc_get_field(volatile u32 *reg, u32 field, u32 *val);
 //#define memset(p,v,s)               kal_mem_set(p, v, s)
 //#define free(p)                     KAL_free(p)
 //#define malloc(sz)                  KAL_malloc(sz,4, KAL_USER_MSDC)
-
-#ifndef min
-#define min(x, y)   (x < y ? x : y)
-#endif
-#ifndef max
-#define max(x, y)   (x > y ? x : y)
-#endif
 
 #if 0
 #define udelay(us)  \

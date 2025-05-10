@@ -116,7 +116,6 @@ extern "C" {
 
 #define NOT_REFERENCED(x) {(x) = (x);}
 #define msleep(x)    mdelay(x)
-#define printk  printf
 
 // ---------------------------------------------------------------------------
 typedef enum {

@@ -21,6 +21,8 @@
  * MA 02111-1307 USA
  */
 
+#include <stdlib.h>
+#include <time.h>
 #include <video.h>
 #include <asm/io.h>
 #include <asm/arch/mt65xx.h>
