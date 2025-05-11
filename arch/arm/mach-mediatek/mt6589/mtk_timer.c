@@ -38,7 +38,6 @@
 #endif
 
 #define MS_TO_US            1000
-#define CFG_HZ              100
 #define MAX_REG_MS          GPT4_MAX_MS_TIMEOUT
 
 #define GPT_SET_BITS(BS,REG)       ((*(volatile U32*)(REG)) |= (U32)(BS))

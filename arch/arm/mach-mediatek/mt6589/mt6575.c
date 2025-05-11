@@ -61,7 +61,7 @@
 #include <asm/arch/mtk_timer.h>
 #include <config.h>
 #include <asm/global_data.h>
-#include <video.h>
+#include <stdio.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 extern int Uboot_power_saving(void);
@@ -150,28 +150,28 @@ int mt65xx_sw_env (void)
     switch(g_boot_mode)
     {        
          case META_BOOT :
-	         video_puts(" => META MODE\n");
+	         printf(" => META MODE\n");
 	         break;
 	     case FACTORY_BOOT :
-	         video_puts(" => FACTORY MODE\n");
+	         printf(" => FACTORY MODE\n");
 	         break;
 	     case RECOVERY_BOOT :
-	         video_puts(" => RECOVERY MODE\n");
+	         printf(" => RECOVERY MODE\n");
 	         break;
 	     case SW_REBOOT :
-	         //video_puts(" => SW RESET\n");
+	         //printf(" => SW RESET\n");
 	         break;
 	     case NORMAL_BOOT :
-	         video_puts(" => NORMAL BOOT\n");
+	         printf(" => NORMAL BOOT\n");
 	         break;
          case ADVMETA_BOOT:
-            video_puts(" => ADVANCED META MODE\n");
+            printf(" => ADVANCED META MODE\n");
             break;
 		   case ATE_FACTORY_BOOT:
-            video_puts(" => ATE FACTORY MODE\n");
+            printf(" => ATE FACTORY MODE\n");
 		        break;     
 	     default :
-                 video_puts(" => UNKNOWN BOOT\n");
+                 printf(" => UNKNOWN BOOT\n");
     }
     return 0;
 #endif    
@@ -184,7 +184,6 @@ BOOT_ARGUMENT *g_boot_arg;
 #include <memory_info.h> // for dram customize
 int dram_init(void)
 {  
-  int i, index, num_record;
   BOOT_ARGUMENT *boot_arg;
   unsigned int dram_rank_num;
   unsigned int dram_rank_size;

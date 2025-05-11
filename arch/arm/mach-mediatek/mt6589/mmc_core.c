@@ -522,7 +522,7 @@ void mmc_dump_ext_csd(struct mmc_card *card)
 #endif
 #define FEATURE_MMC_ADDR_TRANS
 #ifdef FEATURE_MMC_ADDR_TRANS
-typedef enum {
+enum {
      EMMC_PART_BOOT1
     ,EMMC_PART_BOOT2
     ,EMMC_PART_RPMB
@@ -3415,7 +3415,7 @@ int mmc_block_read(int dev_num, unsigned long blknr, u32 blkcnt, unsigned long *
     u32 maxblks  = host->max_phys_segs;
     u32 xfercnt  = blkcnt / maxblks;
     u32 leftblks = blkcnt % maxblks;
-    u32 i, id = host->id;
+    u32 i;
     u8 *buf = (u8*)dst;
     int ret;
 
@@ -3426,7 +3426,7 @@ int mmc_block_read(int dev_num, unsigned long blknr, u32 blkcnt, unsigned long *
         return MMC_ERR_NONE;
 
     if (blknr * (blksz / MMC_BLOCK_SIZE) > card->nblks) {
-        printf("[SD%d] Out of block range: blknr(%d) > sd_blknr(%d)\n", 
+        printf("[SD%d] Out of block range: blknr(%ld) > sd_blknr(%d)\n", 
             host->id, blknr, card->nblks);
         return MMC_ERR_INVALID;
     }
@@ -3452,7 +3452,7 @@ int mmc_block_write(int dev_num, unsigned long blknr, u32 blkcnt, unsigned long 
     u32 maxblks  = host->max_phys_segs;
     u32 xfercnt  = blkcnt / maxblks;
     u32 leftblks = blkcnt % maxblks;
-    u32 i, id = host->id;
+    u32 i;
     u8 *buf = (u8*)src;    
     int ret;
 
@@ -3463,7 +3463,7 @@ int mmc_block_write(int dev_num, unsigned long blknr, u32 blkcnt, unsigned long 
         return MMC_ERR_NONE;
 
     if (blknr * (blksz / MMC_BLOCK_SIZE) > card->nblks) {
-        printf("[SD%d] Out of block range: blknr(%d) > sd_blknr(%d)\n", 
+        printf("[SD%d] Out of block range: blknr(%ld) > sd_blknr(%d)\n", 
             host->id, blknr, card->nblks);
         return MMC_ERR_INVALID;
     }
@@ -3504,7 +3504,6 @@ exit:
 int mmc_init_mem_card(struct mmc_host *host, struct mmc_card *card, u32 ocr)
 {
     int err, id = host->id;
-    int s18a = 0;
 
     /*
      * Sanity check the voltages that the card claims to
@@ -4014,7 +4013,7 @@ int mmc_get_dl_info(void)
 	part_dev_t *dev = mt6575_part_get_device();
 	int i;
 
-	printf("get dl info from 0x%x\n",dl_addr);
+	printf("get dl info from 0x%llx\n",dl_addr);
 	mmc_wrap_bread(dev->id,dl_addr/512,DL_INFO_SIZE/512,(u8 *)dl_buf);
 	memcpy(&download_info,dl_buf,sizeof(download_info));
 	if(memcmp(download_info.magic_num,"DOWNLOAD INFORMATION!!",22)){

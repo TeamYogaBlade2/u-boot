@@ -14,7 +14,7 @@ extern void mtk_timer_init(void);
 
 void gpt_one_shot_irq(unsigned int ms);
 int gpt_irq_init(void);
-void gpt_irq_ack();
+void gpt_irq_ack(void);
 U32 gpt4_get_current_tick (void);
 bool gpt4_timeout_tick (U32 start_tick, U32 timeout_tick);
 U32 gpt4_time2tick_us (U32 time_us);

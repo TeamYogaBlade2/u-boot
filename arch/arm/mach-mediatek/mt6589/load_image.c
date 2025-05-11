@@ -259,7 +259,6 @@ static int mboot_android_check_bootimg_hdr(part_dev_t *dev, char *part_name, boo
     ulong addr;
     part_t *part;
 
-
     //**********************************
 	// TODO : fix pg_sz assignment
     //**********************************	
@@ -304,9 +303,7 @@ static int mboot_android_check_bootimg_hdr(part_dev_t *dev, char *part_name, boo
 	{
 		unsigned int k_pg_cnt = 0;
 		unsigned int r_pg_cnt = 0;
-		unsigned int b_pg_cnt = 0;
-		unsigned int size_b = 0;
-	
+
 		g_kmem_off =  CFG_KIMAGE_LOAD_ADDR;
 
 		if(boot_hdr->kernel_size % pg_sz == 0)
@@ -450,7 +447,6 @@ static int mboot_android_check_recoveryimg_hdr(part_dev_t *dev, char *part_name,
 static int mboot_android_check_factoryimg_hdr(char *part_name, boot_img_hdr *boot_hdr)
 {
     int len;
-    ulong addr;
 
     //**********************************
 	// TODO : fix pg_sz assignment
@@ -530,7 +526,6 @@ static int mboot_android_check_factoryimg_hdr(char *part_name, boot_img_hdr *boo
 int mboot_android_load_bootimg_hdr(char *part_name, unsigned long addr)
 {
     long len;
-	unsigned long begin;
 	unsigned long start_addr;	
     part_t *part;	
     part_dev_t *dev;
@@ -573,7 +568,6 @@ int mboot_android_load_bootimg_hdr(char *part_name, unsigned long addr)
 int mboot_android_load_recoveryimg_hdr(char *part_name, unsigned long addr)
 {
     long len;
-	unsigned long begin;
 	unsigned long start_addr;	
     part_t *part;	
     part_dev_t *dev;
@@ -643,7 +637,6 @@ int mboot_android_load_factoryimg_hdr(char *part_name, unsigned long addr)
 int mboot_android_load_bootimg(char *part_name, unsigned long addr)
 {
     long len;
-	unsigned long begin;
 	unsigned long start_addr;	
     part_t *part;	
     part_dev_t *dev;
@@ -670,8 +663,8 @@ int mboot_android_load_bootimg(char *part_name, unsigned long addr)
     //* read image data
 	//*    
 	printf("\nread the data of %s (size = 0x%x)\n", part_name, g_bimg_sz);
-	printf(" > from - 0x%x (skip boot img hdr)\n",start_addr);
-	printf(" > to   - 0x%x (starts with kernel img hdr)\n",addr);
+	printf(" > from - 0x%lx (skip boot img hdr)\n",start_addr);
+	printf(" > to   - 0x%lx (starts with kernel img hdr)\n",addr);
 
     len = dev->read(dev, start_addr, (uchar*)addr, g_bimg_sz );    
 
@@ -714,8 +707,7 @@ exit:
 int mboot_android_load_recoveryimg(char *part_name, unsigned long addr)
 {
     long len;
-	unsigned long begin;
-	unsigned long start_addr;	
+    unsigned long start_addr;
     part_t *part;	
     part_dev_t *dev;
     
@@ -787,7 +779,6 @@ exit:
 int mboot_android_load_factoryimg(char *part_name, unsigned long addr)
 {
     int len = 0;
-	unsigned long start_addr;	
 
 	//***************
 	//* not to include unused header
@@ -869,7 +860,7 @@ int mboot_recovery_load_raw_part(char *part_name, unsigned char *addr, unsigned 
         goto exit;
 		}
 
-    printf("[%s] Load '%s' partition to 0x%08X (%d bytes in %ld ms)\n", MODULE_NAME, part->name, addr, size, get_timer(begin));
+    printf("[%s] Load '%s' partition to 0x%08X (%d bytes in %ld ms)\n", MODULE_NAME, part->name, (unsigned int)addr, size, get_timer(begin));
     
 exit:
     return len;
@@ -886,7 +877,7 @@ int mboot_recovery_load_misc(unsigned char *misc_addr, unsigned int size)
     int ret;
 
 	printf("[mboot_recovery_load_misc]: size is %u\n", size);
-	printf("[mboot_recovery_load_misc]: misc_addr is 0x%x\n", misc_addr);
+	printf("[mboot_recovery_load_misc]: misc_addr is 0x%x\n", (unsigned int)misc_addr);
 
     ret = mboot_recovery_load_raw_part(PART_MISC, misc_addr, size);
 
