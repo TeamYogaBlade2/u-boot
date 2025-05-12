@@ -112,7 +112,7 @@ void mt65xx_disp_init(void *lcdbase)
 {
 	UINT32 boot_mode_addr = 0;
     fb_size = ALIGN_TO(CFG_DISPLAY_WIDTH, 32) * ALIGN_TO(CFG_DISPLAY_HEIGHT, 32) * CFG_DISPLAY_BPP / 8;
-	boot_mode_addr = (void *)((UINT32)lcdbase + fb_size);
+	boot_mode_addr = (UINT32)lcdbase + fb_size;
     logo_db_addr = (void *)((UINT32)lcdbase - 4 * 1024 * 1024);
 //    fb_addr      = (void *)((UINT32)lcdbase + fb_size);
 	fb_addr  =   lcdbase;

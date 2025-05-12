@@ -68,21 +68,11 @@
 *
 *****************************************************************************/
 
-#ifndef BUILD_LK
 #include <linux/string.h>
-#endif
 #include "lcm_drv.h"
 
-#ifdef BUILD_LK
-	#include <platform/mt_gpio.h>
-	#define LCM_PRINT printf
-#elif defined(BUILD_UBOOT)
-	#include <asm/arch/mt_gpio.h>
-#else
-	#include <linux/kernel.h>
-	#include <mach/mt_gpio.h>
-	#define LCM_PRINT printk
-#endif
+#include <asm/arch/mt_gpio.h>
+
 #define LCM_DBG
 #if  defined(LCM_DBG)
 #define LCM_DBG(fmt, arg...) \
@@ -509,11 +499,7 @@ static void lcm_get_params(LCM_PARAMS *params)
 	//	params->dsi.pll_div2=	1;		// div2=0,1,2,3;div1_real=1,2,4,4	
 	//	params->dsi.fbk_div =	19;    // fref=26MHz, fvco=fref*(fbk_div+1)*2/(div1_real*div2_real)	
 		params->dsi.PLL_CLOCK = LCM_DSI_6589_PLL_CLOCK_227_5;//LCM_DSI_6589_PLL_CLOCK_234;
-    #ifdef BUILD_LK
-	  printf("[LK]---hx8394a----%s------\n",__func__);
-    #else
 	  printk("[KERNEL]---hx8394a----%s------\n",__func__);
-    #endif	
 }
 
 static void lcm_init(void)
@@ -528,11 +514,7 @@ static void lcm_init(void)
 
 //	init_lcm_registers();
 	push_table(lcm_initialization_setting, sizeof(lcm_initialization_setting) / sizeof(struct LCM_setting_table), 1);
-    #ifdef BUILD_LK
-	  printf("[LK]---hx8394a----%s------\n",__func__);
-    #else
 	  printk("[KERNEL]---hx8394a----%s------\n",__func__);
-    #endif	
 }
 
 
@@ -544,11 +526,7 @@ static void lcm_suspend(void)
 	data_array[0] = 0x00100500; // Sleep In
 	dsi_set_cmdq(&data_array, 1, 1);
 	MDELAY(200);
-    #ifdef BUILD_LK
-	  printf("[LK]---hx8394a----%s------\n",__func__);
-    #else
 	  printk("[KERNEL]---hx8394a----%s------\n",__func__);
-    #endif	
 }
 
 
@@ -564,11 +542,7 @@ static void lcm_resume(void)
 	MDELAY(20);      
 
 	init_lcm_registers();
-    #ifdef BUILD_LK
-	  printf("[LK]---hx8394a----%s------\n",__func__);
-    #else
 	  printk("[KERNEL]---hx8394a----%s------\n",__func__);
-    #endif	
 }
          
 #if (LCM_DSI_CMD_MODE)
@@ -634,15 +608,9 @@ static unsigned int lcm_compare_id(void)
 	read_reg_v2(0xf4, buffer, 1);
 	id=buffer[0];
 	
-    #ifdef BUILD_LK
-	printf("%s, LK hx8394a id0 = 0x%08x\n", __func__, id0);
-	printf("%s, LK hx8394a id1 = 0x%08x\n", __func__, id1);
-	printf("%s, LK hx8394a id = 0x%08x\n", __func__, id);
-   #else
 	printk("%s, Kernel hx8394a id0 = 0x%08x\n", __func__, id0);
 	printk("%s, Kernel hx8394a id1 = 0x%08x\n", __func__, id1);
 	printk("%s, Kernel hx8394a id = 0x%08x\n", __func__, id);
-   #endif
 
   return (LCM_ID_HX8394 == id)?1:0;
 
@@ -652,7 +620,6 @@ static unsigned int lcm_compare_id(void)
 #if 1
 static unsigned int lcm_esd_check(void)
 {
-#ifndef BUILD_LK
 	char  buffer[3];
 	//int   array[4];
 
@@ -712,7 +679,6 @@ static unsigned int lcm_esd_check(void)
 		LCM_DBG("esd check error..\n");
 		return 1;
 	}
-#endif
 #endif
 
 }

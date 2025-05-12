@@ -70,6 +70,7 @@
 #define ENABLE_DSI_INTERRUPT 0
 
 #include <asm/arch/disp_drv_platform.h>
+#include <linux/delay.h>
 
 #if ENABLE_DSI_INTERRUPT
 #include <linux/sched.h>

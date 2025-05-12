@@ -93,7 +93,7 @@ extern "C" {
 #define ASSERT(expr)                                                    \
     do {                                                                \
         if(!(expr)) {                                                   \
-    		printf("<ASSERT> %s:line %d %s\n",                          \
+    		printf("<ASSERT> %s:line %d %dx\n",                          \
     		    __FILE__,__LINE__,(int)(#expr));                        \
     		while (1);                                                  \
         }                                                               \

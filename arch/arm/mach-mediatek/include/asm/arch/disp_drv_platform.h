@@ -95,6 +95,7 @@
 #include <asm/arch/disp_drv_log.h>
 #include <asm/arch/mt65xx_disp_drv.h>
 #include "lcm_drv.h"
+#include <linux/delay.h>
 
 
 #undef MTK_M4U_SUPPORT
