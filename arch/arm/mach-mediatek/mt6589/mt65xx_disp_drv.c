@@ -240,8 +240,8 @@ const char* mt65xx_disp_get_lcm_id(void)
 
 void disp_get_fb_address(UINT32 *fbVirAddr, UINT32 *fbPhysAddr)
 {
-    *fbVirAddr = fb_addr;
-    *fbPhysAddr = fb_addr;
+    *fbVirAddr = (UINT32)fb_addr;
+    *fbPhysAddr = (UINT32)fb_addr;
 }
 
 // ---------------------------------------------------------------------------
