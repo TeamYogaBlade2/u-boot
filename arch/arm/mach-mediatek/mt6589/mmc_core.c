@@ -10,6 +10,8 @@
 #include <asm/arch/mmc_hal.h>
 #include <mt65xx_partition.h>
 #include <linux/delay.h>
+#include <blk.h>
+#include <dm/device.h>
 
 #include "pmt.h"
 #include "mmc-host/emmc_device_list.h"
@@ -3997,13 +3999,13 @@ int mmc_init(int id)
     return err;
 }
 #else
-unsigned long mmc_wrap_bread(int dev_num, unsigned long blknr, u32 blkcnt, unsigned long *dst)
+unsigned long mmc_wrap_bread(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt, void *dst)
 {
-    return mmc_block_read(dev_num, blknr, blkcnt, dst) == MMC_ERR_NONE ? blkcnt : (unsigned long) -1;
+    return mmc_block_read(dev->driver->id, blknr, blkcnt, dst) == MMC_ERR_NONE ? blkcnt : (unsigned long) -1;
 }
-unsigned long mmc_wrap_bwrite(int dev_num, unsigned long blknr, u32 blkcnt, unsigned long *src)
+unsigned long mmc_wrap_bwrite(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt, const void *src)
 {
-    return mmc_block_write(dev_num, blknr, blkcnt, src) == MMC_ERR_NONE ? blkcnt : (unsigned long) -1;
+    return mmc_block_write(dev->driver->id, blknr, blkcnt, src) == MMC_ERR_NONE ? blkcnt : (unsigned long) -1;
 }
 int mmc_get_dl_info(void)
 {
@@ -4014,7 +4016,7 @@ int mmc_get_dl_info(void)
 	int i;
 
 	printf("get dl info from 0x%llx\n",dl_addr);
-	mmc_wrap_bread(dev->id,dl_addr/512,DL_INFO_SIZE/512,(u8 *)dl_buf);
+	mmc_wrap_bread(dev->blkdev->bdev,dl_addr/512,DL_INFO_SIZE/512,(u8 *)dl_buf);
 	memcpy(&download_info,dl_buf,sizeof(download_info));
 	if(memcmp(download_info.magic_num,"DOWNLOAD INFORMATION!!",22)){
 		printf("DL INFO NOT FOUND\n");
@@ -4081,8 +4083,9 @@ int mmc_legacy_init(int verbose)
         bdev->removable   = 1;
         bdev->blksz       = MMC_BLOCK_SIZE;
         bdev->lba         = card->nblks * card->blklen / MMC_BLOCK_SIZE;
-        bdev->bdev->block_read  = mmc_wrap_bread;
-        bdev->bdev->block_write = mmc_wrap_bwrite;
+        struct blk_ops *blkops = (struct blk_ops *)bdev->bdev->driver->ops;
+        blkops->read  = mmc_wrap_bread;
+        blkops->write = mmc_wrap_bwrite;
 
         host->boot_type   = RAW_BOOT;
 
