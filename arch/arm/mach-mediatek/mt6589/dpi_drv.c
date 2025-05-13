@@ -72,33 +72,7 @@
 #define ENABLE_DPI_REFRESH_RATE_LOG 0
 
 #include <asm/arch/disp_drv_platform.h>
-
-#if defined(MTK_HDMI_SUPPORT) && !ENABLE_DPI_INTERRUPT
-#error "enable MTK_HDMI_SUPPORT should be also ENABLE_DPI_INTERRUPT"
-#endif
-
-#include <linux/kernel.h>
-#include <linux/string.h>
-#include <asm/io.h>
-#include <disp_drv_log.h>
-
-#include "disp_drv_platform.h"
-
-#include "dpi_reg.h"
-#include "dsi_reg.h"
-#include "dpi_drv.h"
-#include "lcd_drv.h"
-
-#if ENABLE_DPI_INTERRUPT
-#include <linux/interrupt.h>
-#include <linux/wait.h>
-
-#include <mach/irqs.h>
-#include "mtkfb.h"
-#endif
-
-#include <linux/module.h>
-#endif
+#include <linux/compat.h>
 
 static PDPI_REGS const DPI_REG = (PDPI_REGS)(DPI_BASE);
 static PDSI_PHY_REGS const DSI_PHY_REG_DPI = (PDSI_PHY_REGS)(MIPI_CONFIG_BASE + 0x800);
@@ -206,6 +180,18 @@ static irqreturn_t _DPI_InterruptHandler(int irq, void *dev_id)
 }
 #endif
 
+void DPI_WaitVSYNC(void)
+{
+}
+
+void DPI_PauseVSYNC(bool enable)
+{
+}
+
+
+void DPI_InitVSYNC(unsigned int vsync_interval)
+{
+}
 
 DPI_STATUS DPI_Init(BOOL isDpiPoweredOn)
 {

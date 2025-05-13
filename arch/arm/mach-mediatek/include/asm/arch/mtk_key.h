@@ -16,7 +16,7 @@
 
 #define KPD_NUM_KEYS	72	/* 4 * 16 + KPD_MEM5_BITS */
 
-void set_kpd_pmic_mode();
+void set_kpd_pmic_mode(void);
 
 extern bool mtk_detect_key(unsigned short key);
 extern bool mtk_detect_pmic_just_rst(void);

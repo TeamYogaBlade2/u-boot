@@ -37,6 +37,7 @@
 #include <asm/arch/mt6589_irq.h>
 #endif 
 #include <asm/arch/mt6589_sleep.h>
+#include <asm/arch/mtk_timer.h>
 
 //#define HAVE_SLEEP_MODE
 
@@ -77,7 +78,7 @@ void mtk_sleep(u32 timeout, kal_bool en_deep_idle)
     sc_go_to_sleep(timeout, en_deep_idle);
 #endif
 
-    return 0;
+    return;
 }
 
 void power_saving_init(void) {}

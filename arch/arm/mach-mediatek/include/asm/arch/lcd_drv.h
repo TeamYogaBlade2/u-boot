@@ -516,6 +516,11 @@ LCD_STATUS LCD_SetGMCThrottle(void);
 
 LCD_STATUS LCD_DumpM4U(void);
 LCD_STATUS LCD_M4U_On(bool enable);
+
+void LCD_WaitTE(void);
+void LCD_InitVSYNC(unsigned int vsync_interval);
+void LCD_PauseVSYNC(BOOL enable);
+
 // ---------------------------------------------------------------------------
 
 #ifdef __cplusplus

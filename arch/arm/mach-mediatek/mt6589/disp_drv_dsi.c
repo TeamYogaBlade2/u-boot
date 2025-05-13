@@ -136,7 +136,7 @@ static void init_intermediate_buffers(UINT32 fbPhysAddr)
     {
         TempBuffer *b = &s_tmpBuffers[i];
         // clean the intermediate buffers as black to prevent from noise display
-        memset(tmpFbStartPA, 0, tmpFbSizeInBytes);
+        memset((void *)tmpFbStartPA, 0, tmpFbSizeInBytes);
         b->pitchInBytes = tmpFbPitchInBytes;
         b->pa = tmpFbStartPA;
         ASSERT((tmpFbStartPA & 0x7) == 0);  // check if 8-byte-aligned
@@ -227,7 +227,7 @@ void init_dsi(BOOL isDsiPoweredOn)
 {
     DSI_CHECK_RET(DSI_Init(isDsiPoweredOn));
 
-	if(1 == lcm_params->dsi.compatibility_for_nvk){
+//	if(1 == lcm_params->dsi.compatibility_for_nvk){
     	DSI_CHECK_RET(DSI_TXRX_Control(TRUE,                    //cksm_en
                                    TRUE,                    //ecc_en
                                    lcm_params->dsi.LANE_NUM, //ecc_en
@@ -235,11 +235,11 @@ void init_dsi(BOOL isDsiPoweredOn)
                                    FALSE,                   //null_packet_en
                                    FALSE,                   //err_correction_en
                                    FALSE,                   //dis_eotp_en
-								   FALSE,
                                    0));                     //max_return_size
 //		DSI_set_noncont_clk(false,0);
-		DSI_Detect_glitch_enable(true);
-	}
+//		DSI_Detect_glitch_enable(true);
+//	}
+/*
 	else
 		DSI_CHECK_RET(DSI_TXRX_Control(TRUE,                    //cksm_en
                                    TRUE,                    //ecc_en
@@ -250,8 +250,8 @@ void init_dsi(BOOL isDsiPoweredOn)
                                    FALSE,                   //dis_eotp_en
 								   (BOOL)(1 - lcm_params->dsi.cont_clock),
                                    0));                     //max_return_size
+*/
 
-    
 	//initialize DSI_PHY
 #ifdef MT65XX_NEW_DISP
 	DSI_PLL_Select(lcm_params->dsi.pll_select);
@@ -279,10 +279,10 @@ void init_dsi(BOOL isDsiPoweredOn)
 
 	if(lcm_params->dsi.mode != CMD_MODE)
 	{
-		DSI_Set_VM_CMD(lcm_params);
-		DSI_Config_VDO_Timing(lcm_params);
-		if(1 == lcm_params->dsi.compatibility_for_nvk)
-			DSI_Config_VDO_FRM_Mode();
+//		DSI_Set_VM_CMD(lcm_params);
+//		DSI_ConfigVDOTiming(lcm_params);
+//		if(1 == lcm_params->dsi.compatibility_for_nvk)
+//			DSI_Config_VDO_FRM_Mode();
 #ifndef MT65XX_NEW_DISP
         DSI_CHECK_RET(DSI_PS_Control(lcm_params->dsi.PS, lcm_params->width * dsiTmpBufBpp));
 #endif
@@ -480,8 +480,8 @@ static DISP_STATUS dsi_enable_power(BOOL enable)
 			DSI_PHY_clk_switch(1); 
 #ifndef MT65XX_NEW_DISP
 			DSI_CHECK_RET(DSI_PowerOn());
-			if(Need_Wait_ULPS())
-				Wait_ULPS_Mode();
+//			if(Need_Wait_ULPS())
+//				Wait_ULPS_Mode();
 			
 			DSI_PHY_clk_setting(lcm_params->dsi.pll_div1, lcm_params->dsi.pll_div2, lcm_params->dsi.LANE_NUM);
 #else	
@@ -498,7 +498,7 @@ static DISP_STATUS dsi_enable_power(BOOL enable)
 			DSI_CHECK_RET(DSI_enable_MIPI_txio(TRUE));
 
 #ifndef MT65XX_NEW_DISP
-			Wait_WakeUp();
+//			Wait_WakeUp();
 			LCD_CHECK_RET(LCD_PowerOn());		
 #endif
 
@@ -515,8 +515,8 @@ static DISP_STATUS dsi_enable_power(BOOL enable)
 			DSI_CHECK_RET(DSI_PowerOff());
 			// Switch bus to GPIO, then power level will be decided by GPIO setting.
 			DSI_CHECK_RET(DSI_enable_MIPI_txio(FALSE));
-			if(lcm_params->dsi.pll_select == 1)
-				ASSERT(0 == disable_pll(LVDSPLL,"mtk_dsi"));
+//			if(lcm_params->dsi.pll_select == 1)
+//				ASSERT(0 == disable_pll(LVDSPLL,"mtk_dsi"));
 		}
 	} else {
 	    if (enable) {
@@ -536,8 +536,8 @@ static DISP_STATUS dsi_enable_power(BOOL enable)
 			DSI_PHY_clk_switch(1); 
 #ifndef MT65XX_NEW_DISP
 			DSI_CHECK_RET(DSI_PowerOn());
-			if(Need_Wait_ULPS())
-				Wait_ULPS_Mode();
+//			if(Need_Wait_ULPS())
+//				Wait_ULPS_Mode();
 			
 			DSI_PHY_clk_setting(lcm_params->dsi.pll_div1, lcm_params->dsi.pll_div2, lcm_params->dsi.LANE_NUM);
 #else
@@ -555,7 +555,7 @@ static DISP_STATUS dsi_enable_power(BOOL enable)
 			DSI_CHECK_RET(DSI_enable_MIPI_txio(TRUE));
 
 #ifndef MT65XX_NEW_DISP
-			Wait_WakeUp();
+//			Wait_WakeUp();
 			DPI_CHECK_RET(DPI_PowerOn());
 			LCD_CHECK_RET(LCD_PowerOn());		
 #endif
@@ -573,8 +573,8 @@ static DISP_STATUS dsi_enable_power(BOOL enable)
 			DSI_PHY_clk_switch(0);
 			// Switch bus to GPIO, then power level will be decided by GPIO setting.
 			DSI_CHECK_RET(DSI_enable_MIPI_txio(FALSE));
-			if(lcm_params->dsi.pll_select == 1)
-				ASSERT(0 == disable_pll(LVDSPLL,"mtk_dsi"));
+//			if(lcm_params->dsi.pll_select == 1)
+//				ASSERT(0 == disable_pll(LVDSPLL,"mtk_dsi"));
 	    }
 	}
 

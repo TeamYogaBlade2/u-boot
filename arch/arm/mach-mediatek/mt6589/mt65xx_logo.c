@@ -66,8 +66,10 @@
 #include <stdarg.h>
 #include <linux/types.h>
 //#include <devices.h>
-#include <lcd.h>
-#include <video_fb.h>
+//#include <lcd.h>
+//#include <video_fb.h>
+#include <stdlib.h>
+#include <time.h>
 
 //#include <asm/arch/mt6573.h>
 #include <asm/arch/mt65xx_typedefs.h>

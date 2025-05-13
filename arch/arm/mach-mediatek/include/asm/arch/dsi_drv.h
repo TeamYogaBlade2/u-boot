@@ -212,6 +212,7 @@ DSI_STATUS DSI_WaitForNotBusy(void);
 DSI_STATUS DSI_EnableClk(void);
 DSI_STATUS DSI_DisableClk(void);
 DSI_STATUS DSI_Reset(void);
+DSI_STATUS DSI_LP_Reset(void);
 DSI_STATUS DSI_SetMode(unsigned int mode);
 
 DSI_STATUS DSI_EnableInterrupt(DISP_INTERRUPT_EVENTS eventID);
@@ -261,6 +262,7 @@ void DSI_clk_HS_mode(bool enter);
 bool DSI_clk_HS_state(void);
 void DSI_lane0_ULP_mode(bool enter);
 
+void DSI_set_cmdq_V3(LCM_setting_table_V3 *para_tbl, unsigned int size, unsigned char force_update);
 void DSI_set_cmdq_V2(unsigned cmd, unsigned char count, unsigned char *para_list, unsigned char force_update);
 void DSI_set_cmdq(unsigned int *pdata, unsigned int queue_size, unsigned char force_update);
 void DSI_write_lcm_cmd(unsigned int cmd);
@@ -281,6 +283,8 @@ DSI_STATUS DSI_Reset_CLK(void);
 DSI_STATUS DSI_Get_Default_CLK(unsigned int *clk);
 DSI_STATUS DSI_Get_Current_CLK(unsigned int *clk);
 DSI_STATUS DSI_Change_CLK(unsigned int clk);
+
+DSI_STATUS DSI_RegUpdate(void);
 #ifdef __cplusplus
 }
 #endif

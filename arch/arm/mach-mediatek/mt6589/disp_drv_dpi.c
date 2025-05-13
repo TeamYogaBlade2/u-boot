@@ -92,7 +92,7 @@ static void init_intermediate_buffers(UINT32 fbPhysAddr)
         TempBuffer *b = &s_tmpBuffers[i];
         
         // clean the intermediate buffers as black to prevent from noise display
-        memset(tmpFbStartPA, 0, tmpFbSizeInBytes);
+        memset((void *)tmpFbStartPA, 0, tmpFbSizeInBytes);
         b->pitchInBytes = tmpFbPitchInBytes;
         b->pa = tmpFbStartPA;
         ASSERT((tmpFbStartPA & 0x7) == 0);  // check if 8-byte-aligned
@@ -321,9 +321,9 @@ static DISP_STATUS dpi_enable_power(BOOL enable)
         init_io_pad();
         LCD_CHECK_RET(LCD_PowerOn());
         DPI_CHECK_RET(DPI_EnableClk());
-        DPI_EnableIrq();
+//        DPI_EnableIrq();
     } else {
-        DPI_DisableIrq();
+//        DPI_DisableIrq();
         DPI_CHECK_RET(DPI_DisableClk());
         DPI_CHECK_RET(DPI_PowerOff());
         LCD_CHECK_RET(LCD_PowerOff());

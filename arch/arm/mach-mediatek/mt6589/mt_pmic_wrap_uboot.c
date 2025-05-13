@@ -52,6 +52,22 @@
 #include <asm/arch/mt65xx_typedefs.h>
 #include "asm/arch/mt_pmic_wrap_uboot.h"
 
+//---start ---internal API--------------------------------------------------
+static S32 _pwrap_wacs2_nochk( U32 write, U32 adr, U32 wdata, U32 *rdata );
+static S32 _pwrap_reset_spislv(void);
+static S32 _pwrap_init_dio( U32 dio_en );
+static S32 _pwrap_init_cipher( void );
+static S32 _pwrap_init_sidly( void );
+static S32 _pwrap_init_reg_clock( U32 regck_sel );
+static bool _pwrap_timeout_ns (U64 start_time_ns, U64 timeout_time_ns);
+static U64 _pwrap_get_current_time(void);
+static U64 _pwrap_time2ns (U64 time_us);
+static S32 pwrap_read_nochk( U32  adr, U32 *rdata );
+static S32 pwrap_write_nochk( U32  adr, U32  wdata );
+static S32 _pwrap_wacs2_nochk( U32 write, U32 adr, U32 wdata, U32 *rdata );
+static S32 pwrap_init ( void );
+//---end--internal API--------------------------------------------------
+
 //#include "reg_pmic.h"
 //#include "reg_pmic_wrap.h"
 //#include "mt_pmic_wrap.h"

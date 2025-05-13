@@ -180,7 +180,9 @@ void DPI_mipi_switch(bool on);
 
 DPI_STATUS DPI_EnableInterrupt(DISP_INTERRUPT_EVENTS eventID);
 DPI_STATUS DPI_SetInterruptCallback(void (*pCB)(DISP_INTERRUPT_EVENTS eventID));
-
+void DPI_WaitVSYNC(void);
+void DPI_InitVSYNC(unsigned int vsync_interval);
+void DPI_PauseVSYNC(bool enable);
 // ---------------------------------------------------------------------------
 
 #ifdef __cplusplus

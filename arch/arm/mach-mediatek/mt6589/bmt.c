@@ -1,4 +1,5 @@
 #include <asm/arch/bmt.h>
+#include <linux/mtd/rawnand.h>
 
 typedef struct
 {

@@ -27,7 +27,7 @@
 void DBG_Init(void);
 void DBG_Deinit(void);
 
-void DBG_OnTriggerLcd(void);
+//void DBG_OnTriggerLcd(void);
 void DBG_OnTeDelayDone(void);
 void DBG_OnLcdDone(void);
 

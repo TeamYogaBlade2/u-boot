@@ -1,16 +1,10 @@
 #include <asm/arch/disp_drv_platform.h>
-
-#include "debug.h"
-#include "mtkfb_info.h"
+#include <linux/compat.h>
 
 extern s32 mt_set_gpio_out(u32 pin, u32 output);
 extern s32 mt_set_gpio_mode(u32 pin, u32 mode);
 extern s32 mt_set_gpio_dir(u32 pin, u32 dir);
-extern s32 mt_set_gpio_pull_enable(u32 pin, u32 enable);
-
-extern unsigned int EnableVSyncLog;
-
-#define LCM_ESD_CHECK_MAX_COUNT 5
+extern s32 mt_set_gpio_pull_enable(u32 pin, u32 enable); 
 
 // ---------------------------------------------------------------------------
 //  Local Variables
@@ -32,97 +26,12 @@ static UINT32 disp_fb_pages = 2;     ///double buffer
 static BOOL is_page_set = FALSE;
 #endif
 
-BOOL is_engine_in_suspend_mode = FALSE;
-BOOL is_lcm_in_suspend_mode    = FALSE;
+static BOOL is_engine_in_suspend_mode = FALSE;
+static BOOL is_lcm_in_suspend_mode    = FALSE;
 static UINT32 dal_layerPA;
 static UINT32 dal_layerVA;
 
 static unsigned long u4IndexOfLCMList = 0;
-
-#ifdef MT65XX_NEW_DISP	
-static wait_queue_head_t config_update_wq;
-static struct task_struct *config_update_task = NULL;
-static int config_update_task_wakeup = 0;
-extern atomic_t OverlaySettingDirtyFlag;
-extern atomic_t OverlaySettingApplied;
-extern unsigned int PanDispSettingPending;
-extern unsigned int PanDispSettingDirty;
-extern unsigned int PanDispSettingApplied;
-
-extern unsigned int fb_pa;
-
-extern bool is_ipoh_bootup;
-
-extern struct mutex OverlaySettingMutex;
-extern wait_queue_head_t reg_update_wq;
-static wait_queue_head_t vsync_wq;
-static bool vsync_wq_flag = false;
-
-static struct hrtimer cmd_mode_update_timer;
-static ktime_t cmd_mode_update_timer_period;
-
-static bool needStartEngine = false;
-
-extern unsigned int need_esd_check;
-extern wait_queue_head_t esd_check_wq;
-extern BOOL esd_kthread_pause;
-
-DEFINE_MUTEX(MemOutSettingMutex);
-static struct disp_path_config_mem_out_struct MemOutConfig;
-
-DEFINE_MUTEX(LcmCmdMutex);
-
-unsigned int disp_running = 0;
-DECLARE_WAIT_QUEUE_HEAD(disp_done_wq);
-
-OVL_CONFIG_STRUCT cached_layer_config[DDP_OVL_LAYER_MUN] = 
-{
-    {.layer = 0, .isDirty = 1},
-    {.layer = 1, .isDirty = 1},
-    {.layer = 2, .isDirty = 1},
-    {.layer = 3, .isDirty = 1}
-};
-
-static OVL_CONFIG_STRUCT _layer_config[2][DDP_OVL_LAYER_MUN];
-static unsigned int layer_config_index = 0;
-OVL_CONFIG_STRUCT* captured_layer_config = _layer_config[0];
-OVL_CONFIG_STRUCT* realtime_layer_config = _layer_config[0];
-
-struct DBG_OVL_CONFIGS
-{
-    OVL_CONFIG_STRUCT Layer0;
-    OVL_CONFIG_STRUCT Layer1;
-    OVL_CONFIG_STRUCT Layer2;
-    OVL_CONFIG_STRUCT Layer3;
-};
-
-unsigned int gCaptureLayerEnable = 0;
-unsigned int gCaptureLayerDownX = 10;
-unsigned int gCaptureLayerDownY = 10;
-
-struct task_struct *captureovl_task = NULL;
-static int _DISP_CaptureOvlKThread(void *data);
-static unsigned int gWakeupCaptureOvlThread = 0;
-unsigned int gCaptureOvlThreadEnable = 0;
-unsigned int gCaptureOvlDownX = 10;
-unsigned int gCaptureOvlDownY = 10;
-
-struct task_struct *capturefb_task = NULL;
-static int _DISP_CaptureFBKThread(void *data);
-#ifdef USER_BUILD_KERNEL
-unsigned int gCaptureFBEnable = 0;
-#else
-unsigned int gCaptureFBEnable = 0;
-#endif
-unsigned int gCaptureFBDownX = 10;
-unsigned int gCaptureFBDownY = 10;
-unsigned int gCaptureFBPeriod = 100;
-DECLARE_WAIT_QUEUE_HEAD(gCaptureFBWQ);
-
-extern struct fb_info *mtkfb_fbi;
-
-unsigned int is_video_mode_running = 0;
-#endif
 
 DEFINE_SEMAPHORE(sem_update_screen);//linux 3.0 porting
 static BOOL isLCMFound 					= FALSE;
@@ -135,7 +44,7 @@ static BOOL isLCMFound 					= FALSE;
 
 
 
-static size_t disp_log_on = false;
+static size_t disp_log_on = FALSE;
 #define DISP_LOG(fmt, arg...) \
     do { \
         if (disp_log_on) DISP_LOG_PRINT(ANDROID_LOG_WARN, "COMMON", fmt, ##arg); \
@@ -157,18 +66,11 @@ void disp_log_enable(int enable)
 
 static void lcm_set_reset_pin(UINT32 value)
 {
-	int ret = 0;
-	if(LCM_TYPE_DSI == lcm_params->type){
-		ret = enable_clock(MT_CG_DISP1_DBI_ENGINE, "DSI_LRST");
-	}
+	if(LCM_TYPE_DSI == lcm_params->type)
+		MASKREG32(0x14000110, 0x1, 0x0);
 	LCD_SetResetSignal(value);
-	if(LCM_TYPE_DSI == lcm_params->type){
-		ret	+= disable_clock(MT_CG_DISP1_DBI_ENGINE, "DSI_LRST");
-	}
-	if(ret > 0)
-	{
-		printk("[DSI_LRST]power manager API return FALSE\n");
-	}   
+	if(LCM_TYPE_DSI == lcm_params->type)
+		MASKREG32(0x14000110, 0x1, 0x1);
 }
 
 static void lcm_udelay(UINT32 us)
@@ -260,10 +162,9 @@ static void disp_drv_init_ctrl_if(void)
 
 		case LCM_CTRL_SERIAL_DBI :
 							 ASSERT(dbi->port <= 1);
-#ifdef MT65XX_NEW_DISP
-							LCD_CHECK_RET(LCD_Init());
-#endif
+							 LCD_CHECK_RET(LCD_Init());
 							 ctrl_if = LCD_IF_SERIAL_0 + dbi->port;
+
 #if (MTK_LCD_HW_SIF_VERSION == 1)
 							 LCD_ConfigSerialIF(ctrl_if,
 									 (LCD_IF_SERIAL_BITS)dbi->data_width,
@@ -293,10 +194,9 @@ static void disp_drv_init_ctrl_if(void)
 
 		case LCM_CTRL_PARALLEL_DBI :
 							 ASSERT(dbi->port <= 2);
-#ifdef MT65XX_NEW_DISP
-							LCD_CHECK_RET(LCD_Init());
-#endif
+							 LCD_CHECK_RET(LCD_Init());
 							 ctrl_if = LCD_IF_PARALLEL_0 + dbi->port;
+
 							 LCD_ConfigParallelIF(ctrl_if,
 									 (LCD_IF_PARALLEL_BITS)dbi->data_width,
 									 (LCD_IF_PARALLEL_CLK_DIV)dbi->clock_freq,
@@ -308,6 +208,7 @@ static void disp_drv_init_ctrl_if(void)
 									 dbi->parallel.read_latency,
 									 dbi->parallel.wait_period,
 									 dbi->parallel.cs_high_width);
+
 							 break;
 
 		default : ASSERT(0);
@@ -341,10 +242,12 @@ static const LCM_UTIL_FUNCS lcm_utils =
 	/** FIXME: GPIO mode should not be configured in lcm driver
 	  REMOVE ME after GPIO customization is done    
 	 */
+#if 1
 	.set_gpio_out       = mt_set_gpio_out,
 	.set_gpio_mode        = mt_set_gpio_mode,
 	.set_gpio_dir         = mt_set_gpio_dir,
 	.set_gpio_pull_enable = (int (*)(unsigned int, unsigned char))mt_set_gpio_pull_enable
+#endif
 };
 
 
@@ -352,6 +255,7 @@ static const LCM_UTIL_FUNCS lcm_utils =
 extern LCM_DRIVER* lcm_driver_list[];
 extern unsigned int lcm_count;
 extern void init_dsi(BOOL isDsiPoweredOn);
+extern DISP_STATUS dsi_enable_power(BOOL enable);
 const LCM_DRIVER *disp_drv_get_lcm_driver(const char *lcm_name)
 {
 	LCM_DRIVER *lcm = NULL;
@@ -377,15 +281,11 @@ const LCM_DRIVER *disp_drv_get_lcm_driver(const char *lcm_name)
 
 		if(lcm_drv->compare_id)
 		{
-            BOOL id_equal;
 			if(LCM_TYPE_DSI == lcm_params->type){
 				init_dsi(FALSE);
 			}
-            mutex_lock(&LcmCmdMutex);
-            id_equal = lcm_drv->compare_id();
-            mutex_unlock(&LcmCmdMutex);
 
-			if(id_equal == TRUE)
+			if(lcm_drv->compare_id() == TRUE)
 			{
 				printk("[LCM Specified] compare id success\n");
 				isLCMFound = TRUE;
@@ -448,6 +348,7 @@ const LCM_DRIVER *disp_drv_get_lcm_driver(const char *lcm_name)
 			{
 				if(LCM_TYPE_DSI == lcm_params->type){
 					init_dsi(FALSE);
+					dsi_enable_power(TRUE);
 				}
 
 				if(lcm->compare_id != NULL && lcm->compare_id())
@@ -461,8 +362,10 @@ const LCM_DRIVER *disp_drv_get_lcm_driver(const char *lcm_name)
 				else
 				{
 				
+					lcm_drv = lcm;
 					if(LCM_TYPE_DSI == lcm_params->type)
-						DSI_Deinit();
+//						DSI_Deinit();
+						dsi_enable_power(FALSE);
 					printk("\t\t[fail]\n");
 				}
 			}
@@ -532,7 +435,7 @@ static BOOL disp_drv_init_context(void)
 		return TRUE;
 	}
 
-    if(!isLCMFound)
+    	if(!isLCMFound)
 	    DISP_DetectDevice();
     
 	disp_drv_init_ctrl_if();
@@ -577,7 +480,7 @@ BOOL DISP_SelectDeviceBoot(const char* lcm_name)
 	if(lcm_name == NULL)
 	{
 		// we can't do anything in boot stage if lcm_name is NULL
-		return false;
+		return FALSE;
 	}
 	for(i = 0;i < lcm_count;i++)
 	{
@@ -597,15 +500,13 @@ BOOL DISP_SelectDeviceBoot(const char* lcm_name)
 		if(lcm_count == 1)
 		{
 			lcm_drv = lcm;
-			isLCMFound = true;
-			u4IndexOfLCMList = 0;
+			isLCMFound = TRUE;
 			break;
 		}
 
 		if(!strcmp(lcm_name,lcm->name))
 		{
 			printk("\t\t[success]\n");
-			u4IndexOfLCMList = i;
 			lcm_drv = lcm;
 			isLCMFound = TRUE;
 
@@ -637,13 +538,11 @@ BOOL DISP_SelectDeviceBoot(const char* lcm_name)
 
 BOOL DISP_SelectDevice(const char* lcm_name)
 {
-
-#ifndef MT65XX_NEW_DISP
 	LCD_STATUS ret;
+#ifndef MT65XX_NEW_DISP
 	ret = LCD_Init();
 	printk("ret of LCD_Init() = %d\n", ret);
 #endif
-
 	lcm_drv = disp_drv_get_lcm_driver(lcm_name);
 	if (NULL == lcm_drv)
 	{
@@ -657,12 +556,11 @@ BOOL DISP_SelectDevice(const char* lcm_name)
 
 BOOL DISP_DetectDevice(void)
 {
-#ifndef MT65XX_NEW_DISP
 	LCD_STATUS ret;
+#ifndef MT65XX_NEW_DISP
 	ret = LCD_Init();
 	printk("ret of LCD_Init() = %d\n", ret);
 #endif
-
 	lcm_drv = disp_drv_get_lcm_driver(NULL);
 	if (NULL == lcm_drv)
 	{
@@ -678,60 +576,36 @@ BOOL DISP_DetectDevice(void)
 // ---------------------------------------------------------------------------
 //  DISP Driver Implementations
 // ---------------------------------------------------------------------------
-extern mtk_dispif_info_t dispif_info[MTKFB_MAX_DISPLAY_COUNT];
 
+static unsigned int framebuffer_addr_va;
 DISP_STATUS DISP_Init(UINT32 fbVA, UINT32 fbPA, BOOL isLcmInited)
 {
     DISP_STATUS r = DISP_STATUS_OK;
-
-#ifdef MT65XX_NEW_DISP
-#if 0
-	//OUTREG32(DISPSYS_BASE + 0x104, 0xffffffff);//set CG
-	OUTREG32(DISPSYS_BASE + 0x108, 0xffffffff);
-	//OUTREG32(DISPSYS_BASE + 0x114, 0xffffffff);
-	OUTREG32(DISPSYS_BASE + 0x118, 0xffffffff);
-	OUTREG32(DISPSYS_BASE + 0xC08, 0x1);
+	printf("%s, %d\n", __func__, __LINE__);
+#ifdef MT65XX_NEW_DISP	
+	disp_path_ddp_clock_on();
 #endif
-#endif
-    captureovl_task = kthread_create(_DISP_CaptureOvlKThread, NULL, "disp_captureovl_kthread");
-    if (IS_ERR(captureovl_task))
-    {
-        DISP_LOG("DISP_InitVSYNC(): Cannot create capture ovl kthread\n");
-    }
-    if (gWakeupCaptureOvlThread)
-	    wake_up_process(captureovl_task);
-
-    capturefb_task = kthread_create(_DISP_CaptureFBKThread, mtkfb_fbi, "disp_capturefb_kthread");
-    if (IS_ERR(capturefb_task))
-    {
-        DISP_LOG("DISP_InitVSYNC(): Cannot create capture fb kthread\n");
-    }
-	wake_up_process(capturefb_task);
+	DISP_LOG("%s, %d\n", __func__, __LINE__);
 
 	if (!disp_drv_init_context()) {
         return DISP_STATUS_NOT_IMPLEMENTED;
     }
+	DISP_LOG("%s, %d\n", __func__, __LINE__);
 
 //	/* power on LCD before config its registers*/
-//	LCD_CHECK_RET(LCD_Init());
+	//LCD_CHECK_RET(LCD_Init());
 
     disp_drv_init_ctrl_if();
-	disp_path_clock_on("mtkfb");
-    if(clk_is_force_on(MT_CG_DISP0_LARB2_SMI)==0)
-    {
-        printk("[DDP] error, MT_CG_DISP0_LARB2_SMI is not force on\n");
-    }
-    else
-    {
-        //printk("[DDP] MT_CG_DISP0_LARB2_SMI is force on\n");
-    }
-    clk_clr_force_on(MT_CG_DISP0_LARB2_SMI);
+	DISP_LOG("%s, %d\n", __func__, __LINE__);
 
 	// For DSI PHY current leakage SW workaround.
 	///TODO: HOW!!!
 #if !defined (MTK_HDMI_SUPPORT)
 #ifndef MT65XX_NEW_DISP
+	DISP_LOG("%s, %d\n", __func__, __LINE__);
+
 	if((lcm_params->type!=LCM_TYPE_DSI) && (lcm_params->type!=LCM_TYPE_DPI)){
+			printf("%s, %d\n", __func__, __LINE__);
 		DSI_PHY_clk_switch(TRUE);
 		DSI_PHY_clk_switch(FALSE);
 	}
@@ -742,112 +616,27 @@ DISP_STATUS DISP_Init(UINT32 fbVA, UINT32 fbPA, BOOL isLcmInited)
     fbVA += DISP_GetFBRamSize();
     fbPA += DISP_GetFBRamSize();
 #endif
+		DISP_LOG("%s, %d\n", __func__, __LINE__);
+	framebuffer_addr_va = fbVA;
     r = (disp_drv->init) ?
         (disp_drv->init(fbVA, fbPA, isLcmInited)) :
         DISP_STATUS_NOT_IMPLEMENTED;
+				DISP_LOG("%s, %d\n", __func__, __LINE__);
 
     {
         DAL_STATUS ret;
         
         /// DAL init here
-#ifndef MT65XX_NEW_DISP
         fbVA += disp_drv->get_working_buffer_size();
         fbPA += disp_drv->get_working_buffer_size();
-#else
-		fbVA += DISP_GetFBRamSize();
-		fbPA += DISP_GetFBRamSize();
-#endif
         ret = DAL_Init(fbVA, fbPA);
         ASSERT(DAL_STATUS_OK == ret);
         dal_layerPA = fbPA;
         dal_layerVA = fbVA;
     }
-    		// check lcm status
 		if(lcm_drv->check_status)
 			lcm_drv->check_status();
-
-		memset((void*)(&dispif_info[MTKFB_DISPIF_PRIMARY_LCD]), 0, sizeof(mtk_dispif_info_t));
-		
-		switch(lcm_params->type)
-		{
-			case LCM_TYPE_DBI:
-			{
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayType = DISPIF_TYPE_DBI;
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayMode = DISPIF_MODE_COMMAND;
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].isHwVsyncAvailable = 1;
-				printk("DISP Info: DBI, CMD MOde, HY Vsync enable\n");
-				break;
-			}
-			case LCM_TYPE_DPI:
-			{
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayType = DISPIF_TYPE_DPI;
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayMode = DISPIF_MODE_VIDEO;
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].isHwVsyncAvailable = 1;				
-				printk("DISP Info: DPI, VDO MOde, HY Vsync enable\n");
-				break;
-			}
-			case LCM_TYPE_DSI:
-			{
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayType = DISPIF_TYPE_DSI;
-				if(lcm_params->dsi.mode == CMD_MODE)
-				{
-					dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayMode = DISPIF_MODE_COMMAND;
-					dispif_info[MTKFB_DISPIF_PRIMARY_LCD].isHwVsyncAvailable = 1;
-					printk("DISP Info: DSI, CMD MOde, HY Vsync enable\n");
-				}
-				else
-				{
-					dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayMode = DISPIF_MODE_VIDEO;
-					dispif_info[MTKFB_DISPIF_PRIMARY_LCD].isHwVsyncAvailable = 1;
-					printk("DISP Info: DSI, VDO MOde, HY Vsync enable\n");
-				}
-				
-				break;
-			}
-			default:
-				break;
-		}
-		
-
-	if(disp_drv->get_panel_color_format())
-	{
-		switch(disp_drv->get_panel_color_format())
-		{
-			case PANEL_COLOR_FORMAT_RGB565:
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayFormat = DISPIF_FORMAT_RGB565;
-			case PANEL_COLOR_FORMAT_RGB666:
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayFormat = DISPIF_FORMAT_RGB666;
-			case PANEL_COLOR_FORMAT_RGB888:
-				dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayFormat = DISPIF_FORMAT_RGB888;
-			default:
-				break;
-		}
-	}
-	
-	dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayWidth = DISP_GetScreenWidth();
-	dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayHeight = DISP_GetScreenHeight();
-	dispif_info[MTKFB_DISPIF_PRIMARY_LCD].vsyncFPS = lcd_fps;
-
-	if(dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayWidth * dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayHeight <= 240*432)
-	{
-		dispif_info[MTKFB_DISPIF_PRIMARY_LCD].xDPI = dispif_info[MTKFB_DISPIF_PRIMARY_LCD].yDPI = 120;
-	}
-	else if(dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayWidth * dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayHeight <= 320*480)
-	{
-		dispif_info[MTKFB_DISPIF_PRIMARY_LCD].xDPI = dispif_info[MTKFB_DISPIF_PRIMARY_LCD].yDPI = 160;
-	}
-	else if(dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayWidth * dispif_info[MTKFB_DISPIF_PRIMARY_LCD].displayHeight <= 480*854)
-	{
-		dispif_info[MTKFB_DISPIF_PRIMARY_LCD].xDPI = dispif_info[MTKFB_DISPIF_PRIMARY_LCD].yDPI = 240;
-	}
-	else
-	{
-		dispif_info[MTKFB_DISPIF_PRIMARY_LCD].xDPI = dispif_info[MTKFB_DISPIF_PRIMARY_LCD].yDPI = 320;
-	}
-	
-	dispif_info[MTKFB_DISPIF_PRIMARY_LCD].isConnected = 1;
-
-	
+		DISP_LOG("%s, %d\n", __func__, __LINE__);
 
     return r;
 }
@@ -867,7 +656,7 @@ DISP_STATUS DISP_PowerEnable(BOOL enable)
 {
 	DISP_STATUS ret = DISP_STATUS_OK;
 
-    static BOOL s_enabled = FALSE;
+	static BOOL s_enabled = TRUE;
 
 	if (enable != s_enabled)
 		s_enabled = enable;
@@ -882,9 +671,6 @@ DISP_STATUS DISP_PowerEnable(BOOL enable)
 	disp_drv_init_context();
 
 	is_engine_in_suspend_mode = enable ? FALSE : TRUE;
-
-    if (!is_ipoh_bootup)
-        needStartEngine = true;
 
 	ret = (disp_drv->enable_power) ?
 		(disp_drv->enable_power(enable)) :
@@ -917,9 +703,6 @@ DISP_STATUS DISP_PanelEnable(BOOL enable)
 
 	is_lcm_in_suspend_mode = enable ? FALSE : TRUE;
 
-	if (is_ipoh_bootup)
-	    s_enabled = TRUE;
-
 	if (!lcm_drv->suspend || !lcm_drv->resume) {
 		ret = DISP_STATUS_NOT_IMPLEMENTED;
 		goto End;
@@ -932,25 +715,22 @@ DISP_STATUS DISP_PanelEnable(BOOL enable)
 		{		
 			DSI_SetMode(CMD_MODE);
 		}
-        mutex_lock(&LcmCmdMutex);
+
 		lcm_drv->resume();
-		
+	
 		if(lcm_drv->check_status)
 			lcm_drv->check_status();
 		
 		DSI_LP_Reset();
-        mutex_unlock(&LcmCmdMutex);
-
 		if(lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode != CMD_MODE)
 		{
 			//DSI_clk_HS_mode(1);
-			DSI_WaitForNotBusy();
 			DSI_SetMode(lcm_params->dsi.mode);
 			
 			//DPI_CHECK_RET(DPI_EnableClk());
 			//DSI_CHECK_RET(DSI_EnableClk());
 
-			//msleep(200);
+			msleep(200);
 		}
 	}
 	else if (!enable && s_enabled)
@@ -969,9 +749,7 @@ DISP_STATUS DISP_PanelEnable(BOOL enable)
 			DSI_SetMode(CMD_MODE);
 		}
 
-        mutex_lock(&LcmCmdMutex);
 		lcm_drv->suspend();
-        mutex_unlock(&LcmCmdMutex);
 	}
 
 End:
@@ -1000,10 +778,16 @@ DISP_STATUS DISP_LCDPowerEnable(BOOL enable)
 	return DISP_STATUS_OK;
 }
 
+bool first_backlight = true;
+
 DISP_STATUS DISP_SetBacklight(UINT32 level)
 {
 	DISP_STATUS ret = DISP_STATUS_OK;
-
+	if(first_backlight && level == 0){
+		first_backlight = false;
+		printf("First set backlight = 0, return!\n");
+		return ret;
+	}
 	if (down_interruptible(&sem_update_screen)) {
 		printk("ERROR: Can't get sem_update_screen in DISP_SetBacklight()\n");
 		return DISP_STATUS_ERROR;
@@ -1011,7 +795,6 @@ DISP_STATUS DISP_SetBacklight(UINT32 level)
 
 	disp_drv_init_context();
 
-//	LCD_WaitForNotBusy();
 	if(lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode == CMD_MODE)
 		DSI_CHECK_RET(DSI_WaitForNotBusy());
 
@@ -1020,11 +803,7 @@ DISP_STATUS DISP_SetBacklight(UINT32 level)
 		goto End;
 	}
 
-    mutex_lock(&LcmCmdMutex);
 	lcm_drv->set_backlight(level);
-
-    mutex_unlock(&LcmCmdMutex);
-
 End:
 
 	up(&sem_update_screen);
@@ -1055,11 +834,8 @@ DISP_STATUS DISP_SetBacklight_mode(UINT32 mode)
 	if(lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode != CMD_MODE)
 		DSI_SetMode(CMD_MODE);
 
-    mutex_lock(&LcmCmdMutex);
 	lcm_drv->set_backlight_mode(mode);
 	DSI_LP_Reset();
-    mutex_unlock(&LcmCmdMutex);
-
 	if(lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode != CMD_MODE)
 		DSI_SetMode(lcm_params->dsi.mode);
 
@@ -1091,10 +867,8 @@ DISP_STATUS DISP_SetPWM(UINT32 divider)
 		goto End;
 	}
 
-    mutex_lock(&LcmCmdMutex);
 	lcm_drv->set_pwm(divider);
 	DSI_LP_Reset();
-    mutex_unlock(&LcmCmdMutex);
 End:
 
 	up(&sem_update_screen);
@@ -1113,9 +887,7 @@ DISP_STATUS DISP_GetPWM(UINT32 divider, unsigned int *freq)
 		goto End;
 	}
 
-    mutex_lock(&LcmCmdMutex);
 	*freq = lcm_drv->get_pwm(divider);
-    mutex_unlock(&LcmCmdMutex);
 
 End:
 	return ret;
@@ -1179,6 +951,14 @@ DISP_STATUS DISP_DisableDirectLinkMode(UINT32 layer)
 
 extern int MT6516IDP_EnableDirectLink(void);
 
+const char* mt65xx_disp_get_lcm_id(void)
+{
+	if(lcm_drv)
+		return lcm_drv->name;
+	else
+		return NULL;
+}
+
 DISP_STATUS DISP_UpdateScreen(UINT32 x, UINT32 y, UINT32 width, UINT32 height)
 {
     unsigned int is_video_mode;
@@ -1188,44 +968,39 @@ DISP_STATUS DISP_UpdateScreen(UINT32 x, UINT32 y, UINT32 width, UINT32 height)
 	    is_video_mode = 1;
 	else
 	    is_video_mode = 0;
+
 	if (down_interruptible(&sem_update_screen)) {
 		printk("ERROR: Can't get sem_update_screen in DISP_UpdateScreen()\n");
 		return DISP_STATUS_ERROR;
 	}
 
-	// if LCM is powered down, LCD would never recieve the TE signal
-	//
 	if (is_lcm_in_suspend_mode || is_engine_in_suspend_mode) goto End;
 #ifndef MT65XX_NEW_DISP
 	LCD_CHECK_RET(LCD_WaitForNotBusy());
+	printf("%s, %d\n", __func__, __LINE__);
+
 	if(lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode == CMD_MODE)
 		DSI_CHECK_RET(DSI_WaitForNotBusy());
 #endif
-    if (is_video_mode && is_video_mode_running)
-        needStartEngine = false;
-    if (needStartEngine)
-    {
-	    if (lcm_drv->update) {
-            mutex_lock(&LcmCmdMutex);
-		    lcm_drv->update(x, y, width, height);
-			DSI_LP_Reset();
-            mutex_unlock(&LcmCmdMutex);
-        }
+
+	if (lcm_drv->update) {
+		lcm_drv->update(x, y, width, height);
+		DSI_LP_Reset();
     }
+	
 #ifndef MT65XX_NEW_DISP
     LCD_CHECK_RET(LCD_SetRoiWindow(x, y, width, height));
+	printf("%s, %d\n", __func__, __LINE__);
 
 	LCD_CHECK_RET(LCD_FBSetStartCoord(x, y));
+	
+	printf("%s, %d\n", __func__, __LINE__);
 #endif
 	if (-1 != direct_link_layer) {
 		//MT6516IDP_EnableDirectLink();     // FIXME
-	} 
-    else 
-    {
-        if (needStartEngine)
-		    disp_drv->update_screen(FALSE);
+	} else {
+		disp_drv->update_screen(FALSE);
 	}
-    needStartEngine = false;
 End:
 	up(&sem_update_screen);
 
@@ -1322,564 +1097,16 @@ DISP_STATUS DISP_WaitForLCDNotBusy(void)
     LCD_WaitForNotBusy();
     return DISP_STATUS_OK;
 }
-
-#ifdef MT65XX_NEW_DISP
-
-DISP_STATUS _DISP_ConfigUpdateScreen(UINT32 x, UINT32 y, UINT32 width, UINT32 height)
+void DISP_WaitRegUpdate(void)
 {
-#if defined(MTK_LCD_HW_3D_SUPPORT)
-    LCD_CHECK_RET(DISP_Set3DPWM( DISP_Is3DEnabled(), DISP_is3DLandscapeMode() ));
-#endif
-    // if LCM is powered down, LCD would never recieve the TE signal
-    //
-    if (is_lcm_in_suspend_mode || is_engine_in_suspend_mode) return DISP_STATUS_ERROR;
-    if (lcm_drv->update) {
-        mutex_lock(&LcmCmdMutex);
-        lcm_drv->update(x, y, width, height);
-		DSI_LP_Reset();
-        mutex_unlock(&LcmCmdMutex);
-    }
-    disp_drv->update_screen(TRUE);
-
-    return DISP_STATUS_OK;
-}
-
-#define DISP_CB_MAXCNT 2
-typedef struct {
-    DISP_EXTRA_CHECKUPDATE_PTR checkupdate_cb[DISP_CB_MAXCNT];
-    DISP_EXTRA_CONFIG_PTR config_cb[DISP_CB_MAXCNT];
-} CONFIG_CB_ARRAY;
-CONFIG_CB_ARRAY g_CB_Array = { {NULL , NULL},{NULL , NULL}};//if DISP_CB_MAXCNT == 2
-DEFINE_MUTEX(UpdateRegMutex);
-void GetUpdateMutex(void)
-{
-    mutex_lock(&UpdateRegMutex);
-}
-int TryGetUpdateMutex(void)
-{
-    return mutex_trylock(&UpdateRegMutex);
-}
-void ReleaseUpdateMutex(void)
-{
-    mutex_unlock(&UpdateRegMutex);
-}
-
-int DISP_RegisterExTriggerSource(DISP_EXTRA_CHECKUPDATE_PTR pCheckUpdateFunc , DISP_EXTRA_CONFIG_PTR pConfFunc)
-{
-    int index = 0;
-    int hit = 0;
-    if((NULL == pCheckUpdateFunc) || (NULL == pConfFunc))
-    {
-        printk("Warnning! [Func]%s register NULL function : %p,%p\n", __func__ , pCheckUpdateFunc , pConfFunc);
-        return -1;
-    }
-
-    GetUpdateMutex();
-
-    for(index = 0 ; index < DISP_CB_MAXCNT ; index += 1)
-    {
-        if(NULL == g_CB_Array.checkupdate_cb[index])
-        {
-            g_CB_Array.checkupdate_cb[index] = pCheckUpdateFunc;
-            g_CB_Array.config_cb[index] = pConfFunc;
-            hit = 1;
-            break;
-        }
-    }
-
-    ReleaseUpdateMutex();
-
-    return (hit ? index : (-1));
-}
-
-void DISP_UnRegisterExTriggerSource(int u4ID)
-{
-    if(DISP_CB_MAXCNT < (u4ID+1))
-    {
-        printk("Warnning! [Func]%s unregister a never registered function : %d\n", __func__ , u4ID);
-        return;
-    }
-
-    GetUpdateMutex();
-
-    g_CB_Array.checkupdate_cb[u4ID] = NULL;
-    g_CB_Array.config_cb[u4ID] = NULL;
-
-    ReleaseUpdateMutex();
-}
-#if defined (MTK_HDMI_SUPPORT)
-extern 	bool is_hdmi_active(void);
-#endif
-#if defined (MTK_WFD_SUPPORT)
-extern 	bool is_wfd_active(void);
-extern unsigned int wfd_get_current_ovl_dst_addr(void);
-static int debug_ovl_dst_addr = 0;
-#endif
-
-
-static int _DISP_CaptureFBKThread(void *data)
-{
-	struct fb_info* pInfo = (struct fb_info*) data;
-	MMP_MetaDataBitmap_t Bitmap;
-    while(1)
-    {
-		wait_event_interruptible(gCaptureFBWQ, gCaptureFBEnable);
-		Bitmap.data1 = pInfo->var.yoffset;
-		Bitmap.width = DISP_GetScreenWidth();
-		Bitmap.height = DISP_GetScreenHeight() * 2;
-		Bitmap.bpp = pInfo->var.bits_per_pixel;
-		switch (pInfo->var.bits_per_pixel)
-		{
-		case 16:
-		    Bitmap.format = MMProfileBitmapRGB565;
-		    break;
-		case 32:
-		    Bitmap.format = MMProfileBitmapBGRA8888;
-		    break;
-		default:
-		    Bitmap.format = MMProfileBitmapRGB565;
-		    Bitmap.bpp = 16;
-		    break;
-		}
-		Bitmap.start_pos = 0;
-		Bitmap.pitch = pInfo->fix.line_length;
-		if (Bitmap.pitch == 0)
-		{
-		    Bitmap.pitch = ALIGN_TO(Bitmap.width, 32) * Bitmap.bpp / 8;
-		}
-		Bitmap.data_size = Bitmap.pitch * Bitmap.height;
-		Bitmap.down_sample_x = gCaptureFBDownX;
-		Bitmap.down_sample_y = gCaptureFBDownY;
-		Bitmap.pData = ((struct mtkfb_device*)pInfo->par)->fb_va_base;
-		MMProfileLogMetaBitmap(MTKFB_MMP_Events.FBDump, MMProfileFlagPulse, &Bitmap);
-        msleep(gCaptureFBPeriod);
-    }
-    return 0;
-}
-
-static int _DISP_CaptureOvlKThread(void *data)
-{
-	unsigned int index = 0;
-	unsigned int mva[2];
-	void* va[2];
-	unsigned int buf_size;
-	M4U_PORT_STRUCT portStruct;
-	unsigned int init = 0;
-	unsigned int enabled = 0;
-       MMP_MetaDataBitmap_t Bitmap;
-    buf_size = DISP_GetScreenWidth() * DISP_GetScreenHeight() * 4;
-
-    while(1)
-    {
-        wait_event_interruptible(reg_update_wq, gWakeupCaptureOvlThread);
-        gWakeupCaptureOvlThread = 0;
-        if (init == 0)
-        {
-			va[0] = vmalloc(buf_size);
-			va[1] = vmalloc(buf_size);
-			memset(va[0], 0, buf_size);
-			memset(va[1], 0, buf_size);
-			m4u_alloc_mva(M4U_CLNTMOD_WDMA, (unsigned int)va[0], buf_size, 0, 0, &(mva[0]));
-			m4u_alloc_mva(M4U_CLNTMOD_WDMA, (unsigned int)va[1], buf_size, 0, 0, &(mva[1]));
-            disp_module_clock_on(DISP_MODULE_WDMA1, "Dump OVL");
-			portStruct.ePortID = M4U_PORT_WDMA1;		   //hardware port ID, defined in M4U_PORT_ID_ENUM
-			portStruct.Virtuality = 1;
-			portStruct.Security = 0;
-			portStruct.domain = 0;			  //domain : 0 1 2 3
-			portStruct.Distance = 1;
-			portStruct.Direction = 0;
-			m4u_config_port(&portStruct);
-			init = 1;
-        }
-        if (!gCaptureOvlThreadEnable)
-        {
-            if (enabled)
-            {
-                DISP_Config_Overlay_to_Memory(mva[index], 0);
-                enabled = 0;
-            }
-            continue;
-        }
-		DISP_Config_Overlay_to_Memory(mva[index], 1);
-        enabled = 1;
-
-		m4u_dma_cache_maint(M4U_CLNTMOD_WDMA,
-			va[index],
-			DISP_GetScreenHeight()*DISP_GetScreenWidth()*24/8,
-			DMA_BIDIRECTIONAL);
-
-		Bitmap.data1 = index;
-		Bitmap.data2 = mva[index];
-		Bitmap.width = DISP_GetScreenWidth();
-		Bitmap.height = DISP_GetScreenHeight();
-		Bitmap.format = MMProfileBitmapBGR888;
-		Bitmap.start_pos = 0;
-		Bitmap.bpp = 24;
-		Bitmap.pitch = DISP_GetScreenWidth()*3;
-		Bitmap.data_size = Bitmap.pitch * Bitmap.height;
-		Bitmap.down_sample_x = gCaptureOvlDownX;
-		Bitmap.down_sample_y = gCaptureOvlDownY;
-		Bitmap.pData = va[index];
-		MMProfileLogMetaBitmap(MTKFB_MMP_Events.OvlDump, MMProfileFlagPulse, &Bitmap);
-		index = 1 - index;
-    }
-    return 0;
-}
-
-static void _DISP_DumpLayer(OVL_CONFIG_STRUCT* pLayer)
-{
-    if (gCaptureLayerEnable && pLayer->layer_en)
-    {
-        MMP_MetaDataBitmap_t Bitmap;
-        Bitmap.data1 = pLayer->vaddr;
-        Bitmap.width = pLayer->dst_w;
-        Bitmap.height = pLayer->dst_h;
-        switch (pLayer->fmt)
-        {
-        case OVL_INPUT_FORMAT_RGB565: Bitmap.format = MMProfileBitmapRGB565; Bitmap.bpp = 16; break;
-        case OVL_INPUT_FORMAT_RGB888: Bitmap.format = MMProfileBitmapBGR888; Bitmap.bpp = 24; break;
-        case OVL_INPUT_FORMAT_ARGB8888:
-        case OVL_INPUT_FORMAT_PARGB8888:
-        case OVL_INPUT_FORMAT_xRGB8888: Bitmap.format = MMProfileBitmapBGRA8888; Bitmap.bpp = 32; break;
-        case OVL_INPUT_FORMAT_BGR888: Bitmap.format = MMProfileBitmapRGB888; Bitmap.bpp = 24; break;
-        case OVL_INPUT_FORMAT_ABGR8888:
-        case OVL_INPUT_FORMAT_PABGR8888:
-        case OVL_INPUT_FORMAT_xBGR8888: Bitmap.format = MMProfileBitmapRGBA8888; Bitmap.bpp = 32; break;
-        default: return;
-        }
-        Bitmap.start_pos = 0;
-        Bitmap.pitch = pLayer->src_pitch;
-        Bitmap.data_size = Bitmap.pitch * Bitmap.height;
-        Bitmap.down_sample_x = gCaptureLayerDownX;
-        Bitmap.down_sample_y = gCaptureLayerDownY;
-        if (pLayer->addr >= fb_pa &&
-            pLayer->addr < (fb_pa+DISP_GetVRamSize()))
-        {
-            Bitmap.pData = pLayer->vaddr;
-            MMProfileLogMetaBitmap(MTKFB_MMP_Events.Layer[pLayer->layer], MMProfileFlagPulse, &Bitmap);
-        }
-        else
-        {
-            m4u_mva_map_kernel(pLayer->addr, Bitmap.data_size, 0, (unsigned int*)&Bitmap.pData, &Bitmap.data_size);
-            MMProfileLogMetaBitmap(MTKFB_MMP_Events.Layer[pLayer->layer], MMProfileFlagPulse, &Bitmap);
-            m4u_mva_unmap_kernel(pLayer->addr, Bitmap.data_size, (unsigned int)Bitmap.pData);
-        }
-    }
-}
-
-static void _DISP_VSyncCallback(void* pParam);
-
-void DISP_StartConfigUpdate(void)
-{
-	if(((LCM_TYPE_DSI == lcm_params->type) && (CMD_MODE == lcm_params->dsi.mode)) || (LCM_TYPE_DBI == lcm_params->type))
-	{
-		config_update_task_wakeup = 1;
-		wake_up_interruptible(&config_update_wq);
+	if((LCM_TYPE_DPI == lcm_params->type) ||
+	(LCM_TYPE_DSI == lcm_params->type && lcm_params->dsi.mode != CMD_MODE)){
+		DSI_RegUpdate();
 	}
 }
 
-static int _DISP_ConfigUpdateKThread(void *data)
-{
-    int i;
-    int dirty = 0;
-    int overlay_dirty = 0;
-    int aal_dirty = 0;
-    int index = 0;
-    unsigned int esd_check_count;
-    struct disp_path_config_mem_out_struct mem_out_config;
-    struct sched_param param = { .sched_priority = RTPM_PRIO_SCRN_UPDATE };
-    sched_setscheduler(current, SCHED_RR, &param);
-    while(1)
-    {
-        wait_event_interruptible(config_update_wq, config_update_task_wakeup);
-        config_update_task_wakeup = 0;
-        //MMProfileLog(MTKFB_MMP_Events.UpdateConfig, MMProfileFlagStart);
-        dirty = 0;
-
-        if (down_interruptible(&sem_early_suspend)) {
-            printk("[FB Driver] can't get semaphore in mtkfb_early_suspend()\n");
-            continue;
-        }
-        //MMProfileLogEx(MTKFB_MMP_Events.EarlySuspend, MMProfileFlagStart, 1, 0);
-        if (need_esd_check && (!is_early_suspended))
-        {
-            esd_check_count = 0;
-            disp_running = 1;
-            MMProfileLog(MTKFB_MMP_Events.EsdCheck, MMProfileFlagStart);
-            while (esd_check_count < LCM_ESD_CHECK_MAX_COUNT)
-            {
-				if(DISP_EsdCheck())
-				{
-					MMProfileLogEx(MTKFB_MMP_Events.EsdCheck, MMProfileFlagPulse, 0, 0);
-					DISP_EsdRecover();
-				}
-				else
-				{
-				    break;
-				}
-				esd_check_count++;
-            }
-            if (esd_check_count >= LCM_ESD_CHECK_MAX_COUNT)
-            {
-				MMProfileLogEx(MTKFB_MMP_Events.EsdCheck, MMProfileFlagPulse, 2, 0);
-				esd_kthread_pause = TRUE;
-            }
-            if (esd_check_count)
-            {
-				if (lcm_drv->update)
-				{
-					mutex_lock(&LcmCmdMutex);
-					lcm_drv->update(0, 0, DISP_GetScreenWidth(), DISP_GetScreenHeight());
-					mutex_unlock(&LcmCmdMutex);
-				}
-				dirty = 1;
-            }
-            need_esd_check = 0;
-            wake_up_interruptible(&esd_check_wq);
-            MMProfileLog(MTKFB_MMP_Events.EsdCheck, MMProfileFlagEnd);
-            // Do not set disp_running to 0 for DSI video mode.
-            if ((lcm_params->type == LCM_TYPE_DSI) && (lcm_params->dsi.mode != CMD_MODE))
-                disp_running = 1;
-            else
-            disp_running = 0;
-        }
-
-        if (!is_early_suspended)
-        {
-            if (mutex_trylock(&OverlaySettingMutex))
-            {
-                overlay_dirty = atomic_read(&OverlaySettingDirtyFlag);
-                if (overlay_dirty)
-                {
-                    layer_config_index = 1 - layer_config_index;
-                    captured_layer_config = _layer_config[layer_config_index];
-                    memcpy(captured_layer_config, cached_layer_config, sizeof(OVL_CONFIG_STRUCT)*DDP_OVL_LAYER_MUN);
-                    for (i=0; i<DDP_OVL_LAYER_MUN; i++)
-                        cached_layer_config[i].isDirty = false;
-                    MMProfileLogStructure(MTKFB_MMP_Events.ConfigOVL, MMProfileFlagPulse, captured_layer_config, struct DBG_OVL_CONFIGS);
-                    atomic_set(&OverlaySettingDirtyFlag, 0);
-                    PanDispSettingDirty = 0;
-                    dirty = 1;
-                }
-                mutex_unlock(&OverlaySettingMutex);
-            }
-            aal_dirty = overlay_dirty;//overlay refresh means AAL also needs refresh
-            //GetUpdateMutex();
-            if(1 == TryGetUpdateMutex())
-            {
-                for(index = 0 ; index < DISP_CB_MAXCNT ; index += 1)
-                {
-                    if((NULL != g_CB_Array.checkupdate_cb[index]) && g_CB_Array.checkupdate_cb[index](overlay_dirty))
-                    {
-                        dirty = 1;
-                        aal_dirty = 1;
-                        break;
-                    }
-                }
-                ReleaseUpdateMutex();
-            }
-
-            if (mutex_trylock(&MemOutSettingMutex))
-            {
-                if (MemOutConfig.dirty)
-                {
-                    memcpy(&mem_out_config, &MemOutConfig, sizeof(MemOutConfig));
-                    MemOutConfig.dirty = 0;
-                    dirty = 1;
-                }
-                else
-                    mem_out_config.dirty = 0;
-                mutex_unlock(&MemOutSettingMutex);
-            }
-        }
-		if(((LCM_TYPE_DSI == lcm_params->type) && (CMD_MODE == lcm_params->dsi.mode)) || (LCM_TYPE_DBI == lcm_params->type))
-		{
-			_DISP_VSyncCallback(NULL);
-		}
-
-        if (dirty)
-        {
-            // Apply configuration here.
-            disp_running = 1;
-            disp_path_get_mutex();
-            if (overlay_dirty)
-            {
-                MMProfileLog(MTKFB_MMP_Events.ConfigOVL, MMProfileFlagStart);
-                for (i=0; i<DDP_OVL_LAYER_MUN; i++)
-                {
-                    if (captured_layer_config[i].isDirty)
-                    {
-                        _DISP_DumpLayer(&captured_layer_config[i]);
-                        disp_path_config_layer(&captured_layer_config[i]);
-                    }
-                }
-                if ((lcm_params->type == LCM_TYPE_DBI) ||
-                    ((lcm_params->type == LCM_TYPE_DSI) && (lcm_params->dsi.mode == CMD_MODE)))
-                {
-                    if ((PanDispSettingPending==1) && (PanDispSettingDirty==0))
-                    {
-                        PanDispSettingApplied = 1;
-                        PanDispSettingPending = 0;
-                    }
-                    atomic_set(&OverlaySettingApplied, 1);
-                    wake_up_interruptible(&reg_update_wq);
-                }
-                MMProfileLog(MTKFB_MMP_Events.ConfigOVL, MMProfileFlagEnd);
-
-
-            }
-
-            // Apply AAL config here.
-            if (aal_dirty)
-            {
-                MMProfileLog(MTKFB_MMP_Events.ConfigAAL, MMProfileFlagStart);
-
-                //GetUpdateMutex();
-                if(1 == TryGetUpdateMutex())
-                {
-                    for(index = 0 ; index < DISP_CB_MAXCNT ; index += 1)
-                    {
-                        if((NULL != g_CB_Array.checkupdate_cb[index]) && g_CB_Array.checkupdate_cb[index](overlay_dirty))
-                        {
-                            g_CB_Array.config_cb[index](overlay_dirty);
-                        }
-                    }
-                    ReleaseUpdateMutex();
-                }
-                MMProfileLog(MTKFB_MMP_Events.ConfigAAL, MMProfileFlagEnd);
-            }
-
-            // Apply memory out config here.
-            if (mem_out_config.dirty)
-            {
-                MMProfileLogEx(MTKFB_MMP_Events.ConfigMemOut, MMProfileFlagStart, mem_out_config.enable, mem_out_config.dstAddr);
-                disp_path_config_mem_out(&mem_out_config);
-                MMProfileLogEx(MTKFB_MMP_Events.ConfigMemOut, MMProfileFlagEnd, 0, 0);
-            }
-#if defined(MTK_HDMI_SUPPORT)
-                if(is_hdmi_active() && !DISP_IsVideoMode())
-                {
-                MMProfileLogEx(MTKFB_MMP_Events.ConfigMemOut, MMProfileFlagStart, mem_out_config.enable, mem_out_config.dstAddr);
-                    memcpy(&mem_out_config, &MemOutConfig, sizeof(MemOutConfig));
-                    disp_path_config_mem_out(&mem_out_config);
-                MMProfileLogEx(MTKFB_MMP_Events.ConfigMemOut, MMProfileFlagEnd, 1, 0);
-                }
-#endif
-#if defined(MTK_WFD_SUPPORT)
-            if(is_wfd_active() && !DISP_IsVideoMode())
-            {
-                MMProfileLogEx(MTKFB_MMP_Events.ConfigMemOut, MMProfileFlagStart, mem_out_config.enable, mem_out_config.dstAddr);
-                memcpy(&mem_out_config, &MemOutConfig, sizeof(MemOutConfig));
-
-				mem_out_config.dstAddr = wfd_get_current_ovl_dst_addr();
-				if(debug_ovl_dst_addr == mem_out_config.dstAddr)
-					MMProfileLogEx(MTKFB_MMP_Events.ConfigMemOut, MMProfileFlagPulse, 0xFFFFFFFF,0xFFFFFFFF);
-			
-				debug_ovl_dst_addr = wfd_get_current_ovl_dst_addr();					
-                disp_path_config_mem_out(&mem_out_config);
-                MMProfileLogEx(MTKFB_MMP_Events.ConfigMemOut, MMProfileFlagEnd, 2, 0);
-            }
-#endif
-            // Trigger interface engine for cmd mode.
-            if ((lcm_params->type == LCM_TYPE_DBI) ||
-                ((lcm_params->type == LCM_TYPE_DSI) && (lcm_params->dsi.mode == CMD_MODE)))
-            {
-                DISP_STATUS ret = _DISP_ConfigUpdateScreen(0, 0, DISP_GetScreenWidth(), DISP_GetScreenHeight());
-                if ((ret != DISP_STATUS_OK) && (is_early_suspended == 0))
-                    hrtimer_start(&cmd_mode_update_timer, cmd_mode_update_timer_period, HRTIMER_MODE_REL);
-            }
-            disp_path_release_mutex();
-        }
-        else
-        {
-            if ((lcm_params->type == LCM_TYPE_DBI) ||
-                ((lcm_params->type == LCM_TYPE_DSI) && (lcm_params->dsi.mode == CMD_MODE)))
-            {
-                // Start update timer.
-                if (!is_early_suspended)
-                    hrtimer_start(&cmd_mode_update_timer, cmd_mode_update_timer_period, HRTIMER_MODE_REL);
-            }
-        }
-
-        //MMProfileLog(MTKFB_MMP_Events.UpdateConfig, MMProfileFlagEnd);
-        //MMProfileLogEx(MTKFB_MMP_Events.EarlySuspend, MMProfileFlagEnd, 1, 0);
-        up(&sem_early_suspend);
-        if (kthread_should_stop())
-            break;
-    }
-
-    return 0;
-}
-
-static void _DISP_HWDoneCallback(void* pParam)
-{
-    MMProfileLogEx(MTKFB_MMP_Events.DispDone, MMProfileFlagPulse, is_early_suspended, 0);
-    // For DPI, this callback is called each time DPI VSync arrives.
-    // So trigger disp done event only in early suspend.
-    if ((lcm_params->type != LCM_TYPE_DPI) || (is_early_suspended))
-    {
-        // Disable DPI immediately to avoid restarting of DDP.
-        if (lcm_params->type == LCM_TYPE_DPI)
-            DPI_DisableClk();
-        disp_running = 0;
-        wake_up_interruptible(&disp_done_wq);
-    }
-}
-
-static void _DISP_VSyncCallback(void* pParam)
-{
-    MMProfileLog(MTKFB_MMP_Events.VSync, MMProfileFlagPulse);
-    vsync_wq_flag = 1;
-    wake_up_interruptible(&vsync_wq);
-}
-
-static void _DISP_RegUpdateCallback(void* pParam)
-{
-    MMProfileLog(MTKFB_MMP_Events.RegUpdate, MMProfileFlagPulse);
-    realtime_layer_config = captured_layer_config;
-    if ((lcm_params->type == LCM_TYPE_DPI) ||
-        ((lcm_params->type == LCM_TYPE_DSI) && (lcm_params->dsi.mode != CMD_MODE)))
-    {
-    	if ((PanDispSettingPending==1) && (PanDispSettingDirty==0))
-    	{
-			PanDispSettingApplied = 1;
-			PanDispSettingPending = 0;
-	    }
-        atomic_set(&OverlaySettingApplied, 1);
-    }
-    gWakeupCaptureOvlThread = 1;
-    wake_up_interruptible(&reg_update_wq);
-}
-
-static void _DISP_TargetLineCallback(void* pParam)
-{
-    //tasklet_hi_schedule(&ConfigUpdateTask);
-    MMProfileLogEx(MTKFB_MMP_Events.UpdateConfig, MMProfileFlagPulse, 0, 0);
-    config_update_task_wakeup = 1;
-    wake_up_interruptible(&config_update_wq);
-}
-
-static void _DISP_CmdDoneCallback(void* pParam)
-{
-    //tasklet_hi_schedule(&ConfigUpdateTask);
-    MMProfileLogEx(MTKFB_MMP_Events.UpdateConfig, MMProfileFlagPulse, 1, 0);
-    config_update_task_wakeup = 1;
-    wake_up_interruptible(&config_update_wq);
-    _DISP_HWDoneCallback(NULL);
-}
-
-static enum hrtimer_restart _DISP_CmdModeTimer_handler(struct hrtimer *timer)
-{
-    MMProfileLogEx(MTKFB_MMP_Events.UpdateConfig, MMProfileFlagPulse, 2, 0);
-    config_update_task_wakeup = 1;
-    wake_up_interruptible(&config_update_wq);
-    return HRTIMER_NORESTART;
-}
-#endif
-
 void DISP_InitVSYNC(unsigned int vsync_interval)
 {
-#ifndef MT65XX_NEW_DISP
 	if((LCM_TYPE_DBI == lcm_params->type) || 
 	(LCM_TYPE_DSI == lcm_params->type && lcm_params->dsi.mode == CMD_MODE)){
     	LCD_InitVSYNC(vsync_interval);
@@ -1892,83 +1119,10 @@ void DISP_InitVSYNC(unsigned int vsync_interval)
 	{
 	    DISP_LOG("DISP_FMDesense_Query():unknown interface\n");
 	}
-#else
-    DISP_INTERRUPT_CALLBACK_STRUCT cb;
-    init_waitqueue_head(&config_update_wq);
-    init_waitqueue_head(&vsync_wq);
-    config_update_task = kthread_create(
-        _DISP_ConfigUpdateKThread, NULL, "disp_config_update_kthread");
-
-    if (IS_ERR(config_update_task)) 
-    {
-        DISP_LOG("DISP_InitVSYNC(): Cannot create config update kthread\n");
-        return;
-    }
-    wake_up_process(config_update_task);
-    if (LCM_TYPE_DBI == lcm_params->type)
-    {
-        LCD_InitVSYNC(vsync_interval);
-        cmd_mode_update_timer_period = ktime_set(0 , vsync_interval*1000);//ktime_set(0, 14285714); // 70Hz
-        hrtimer_init(&cmd_mode_update_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-        cmd_mode_update_timer.function = _DISP_CmdModeTimer_handler;
-//        cb.pFunc = _DISP_VSyncCallback;
-//        DISP_SetInterruptCallback(DISP_LCD_SYNC_INT, &cb);
-        cb.pFunc = _DISP_CmdDoneCallback;
-        DISP_SetInterruptCallback(DISP_LCD_TRANSFER_COMPLETE_INT, &cb);
-        cb.pFunc = _DISP_RegUpdateCallback;
-        DISP_SetInterruptCallback(DISP_LCD_REG_COMPLETE_INT, &cb);
-        config_update_task_wakeup = 1;
-        wake_up_interruptible(&config_update_wq);
-    }
-    else if (LCM_TYPE_DPI == lcm_params->type)
-    {
-        RDMASetTargetLine(0, DISP_GetScreenHeight()*4/5);
-        cb.pFunc = _DISP_VSyncCallback;
-        DISP_SetInterruptCallback(DISP_DPI_VSYNC_INT, &cb);
-        cb.pFunc = _DISP_TargetLineCallback;
-        DISP_SetInterruptCallback(DISP_DPI_TARGET_LINE_INT, &cb);
-        cb.pFunc = _DISP_RegUpdateCallback;
-        DISP_SetInterruptCallback(DISP_DPI_REG_UPDATE_INT, &cb);
-    }
-    else if (LCM_TYPE_DSI == lcm_params->type)
-    {
-        if (CMD_MODE == lcm_params->dsi.mode)
-        {
-            DSI_InitVSYNC(vsync_interval);
-            cmd_mode_update_timer_period = ktime_set(0 , vsync_interval*1000);//ktime_set(0, 14285714); // 70Hz
-            hrtimer_init(&cmd_mode_update_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-            cmd_mode_update_timer.function = _DISP_CmdModeTimer_handler;
-//            cb.pFunc = _DISP_VSyncCallback;
-//            DISP_SetInterruptCallback(DISP_DSI_VSYNC_INT, &cb);
-            cb.pFunc = _DISP_CmdDoneCallback;
-            DISP_SetInterruptCallback(DISP_DSI_CMD_DONE_INT, &cb);
-            cb.pFunc = _DISP_RegUpdateCallback;
-            DISP_SetInterruptCallback(DISP_DSI_REG_UPDATE_INT, &cb);
-            config_update_task_wakeup = 1;
-            wake_up_interruptible(&config_update_wq);
-        }
-        else
-        {
-            RDMASetTargetLine(0, DISP_GetScreenHeight()*4/5);
-            cb.pFunc = _DISP_VSyncCallback;
-            DISP_SetInterruptCallback(DISP_DSI_VSYNC_INT, &cb);
-            cb.pFunc = _DISP_TargetLineCallback;
-            DISP_SetInterruptCallback(DISP_DSI_TARGET_LINE_INT, &cb);
-            cb.pFunc = _DISP_RegUpdateCallback;
-            DISP_SetInterruptCallback(DISP_DSI_REG_UPDATE_INT, &cb);
-            cb.pFunc = _DISP_HWDoneCallback;
-            DISP_SetInterruptCallback(DISP_DSI_VMDONE_INT, &cb);
-        }
-    }
-    else
-        DISP_LOG("DISP_InitVSYNC():unknown interface\n");
-#endif
 }
 
 void DISP_WaitVSYNC(void)
 {
-    MMProfileLog(MTKFB_MMP_Events.WaitVSync, MMProfileFlagStart);
-#ifndef MT65XX_NEW_DISP
 	if((LCM_TYPE_DBI == lcm_params->type) || 
 	(LCM_TYPE_DSI == lcm_params->type && lcm_params->dsi.mode == CMD_MODE)){
     	LCD_WaitTE();
@@ -1981,46 +1135,12 @@ void DISP_WaitVSYNC(void)
 	{
 	    DISP_LOG("DISP_WaitVSYNC():unknown interface\n");
 	}
-#else
-    if((LCM_TYPE_DBI == lcm_params->type))
-    {
-        LCD_WaitTE();
-    }
-    else if(LCM_TYPE_DSI == lcm_params->type && lcm_params->dsi.mode == CMD_MODE)
-    {
-//        DSI_WaitTE();
-        vsync_wq_flag = 0;
-        if (wait_event_interruptible_timeout(vsync_wq, vsync_wq_flag, HZ/10) == 0)
-        {
-            printk("[DISP] Wait VSync timeout. early_suspend=%d\n", is_early_suspended);
-        }
-        
-    }
-    else if((LCM_TYPE_DPI == lcm_params->type) || 
-        (LCM_TYPE_DSI == lcm_params->type && lcm_params->dsi.mode != CMD_MODE))
-    {
-        //printk("[DISP] +VSync\n");
-        vsync_wq_flag = 0;
-        if (wait_event_interruptible_timeout(vsync_wq, vsync_wq_flag, HZ/10) == 0)
-        {
-            printk("[DISP] Wait VSync timeout. early_suspend=%d\n", is_early_suspended);
-        }
-        //printk("[DISP] -VSync\n");
-    }
-    else
-    {
-        DISP_LOG("DISP_WaitVSYNC():unknown interface\n");
-    }
-#endif
-    MMProfileLog(MTKFB_MMP_Events.WaitVSync, MMProfileFlagEnd);
 }
 
 DISP_STATUS DISP_PauseVsync(BOOL enable)
 {
 	if((LCM_TYPE_DBI == lcm_params->type) || 
 	(LCM_TYPE_DSI == lcm_params->type && lcm_params->dsi.mode == CMD_MODE)){
-        if (enable)
-            hrtimer_cancel(&cmd_mode_update_timer);
     	LCD_PauseVSYNC(enable);
 	}
 	else if((LCM_TYPE_DPI == lcm_params->type) || 
@@ -2054,18 +1174,6 @@ DISP_STATUS DISP_ConfigDither(int lrs, int lgs, int lbs, int dbr, int dbg, int d
 //  Retrieve Information
 // ---------------------------------------------------------------------------
 
-BOOL DISP_IsVideoMode(void)
-{
-    disp_drv_init_context();
-    if(lcm_params)
-        return lcm_params->type==LCM_TYPE_DPI || (lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode != CMD_MODE);
-    else
-    {
-        printk("WARNING!! DISP_IsVideoMode is called before display driver inited!\n");
-        return 0;
-    }
-}
-
 UINT32 DISP_GetScreenWidth(void)
 {
     disp_drv_init_context();
@@ -2090,36 +1198,6 @@ UINT32 DISP_GetScreenHeight(void)
 		return 0;
 	}
 }
-UINT32 DISP_GetActiveHeight(void)
-{
-    disp_drv_init_context();
-	if(lcm_params)
-	{
-	    printk("[wwy]lcm_parms->active_height = %d\n",lcm_params->active_height);
-    	return lcm_params->active_height;
-	}
-	else
-	{
-		printk("WARNING!! get active_height before display driver inited!\n");
-		return 0;
-	}
-}
-
-UINT32 DISP_GetActiveWidth(void)
-{
-    disp_drv_init_context();
-	if(lcm_params)
-	{
-	    printk("[wwy]lcm_parms->active_width = %d\n",lcm_params->active_width);
-    	return lcm_params->active_width;
-	}
-	else
-	{
-		printk("WARNING!! get active_width before display driver inited!\n");
-		return 0;
-	}
-}
-
 DISP_STATUS DISP_SetScreenBpp(UINT32 bpp)
 {
     ASSERT(bpp != 0);
@@ -2164,19 +1242,19 @@ UINT32 DISP_GetPages(void)
 
         if(isHwSupportTripleBuffer == 0x1)
         {
-        	printk("[K]DISP_GetPages: hw support!\n");
+        	printf("[LK]DISP_GetPages: hw support!\n");
             disp_fb_pages = 3;
         }
         else
         {
-        	printk("[K]DISP_GetPages: hw not support!\n");
+        	printf("[LK]DISP_GetPages: hw not support!\n");
             disp_fb_pages = 2;
         }
 
         is_page_set = TRUE;
     }
 
-    printk("[K]DISP_GetPages: disp_fb_pages=%d!\n", disp_fb_pages);
+    printf("[LK]DISP_GetPages: disp_fb_pages=%d!\n", disp_fb_pages);
     
     return disp_fb_pages;   // Double Buffers
 }
@@ -2307,269 +1385,14 @@ UINT32 DISP_GetOutputBPPforDithering(void)
 		DISP_STATUS_NOT_IMPLEMENTED;
 }
 
-DISP_STATUS DISP_Config_Overlay_to_Memory(unsigned int mva, int enable)
+DISP_STATUS DISP_Capture_Framebuffer(unsigned int pvbuf, unsigned int bpp)
 {
-//	int ret = 0;
-
-//	struct disp_path_config_mem_out_struct mem_out = {0};
-
-	if(enable)
-	{
-		MemOutConfig.outFormat = WDMA_OUTPUT_FORMAT_RGB888;
-
-		MemOutConfig.enable = 1;
-		MemOutConfig.dstAddr = mva;
-		MemOutConfig.srcROI.x = 0;
-		MemOutConfig.srcROI.y = 0;
-		MemOutConfig.srcROI.height= DISP_GetScreenHeight();
-		MemOutConfig.srcROI.width= DISP_GetScreenWidth();
-
-#if !defined(MTK_WFD_SUPPORT) && !defined(MTK_HDMI_SUPPORT)
-		mutex_lock(&MemOutSettingMutex);
-		MemOutConfig.dirty = 1;
-		mutex_unlock(&MemOutSettingMutex);
-#endif
-	}
-	else
-	{
-		MemOutConfig.outFormat = WDMA_OUTPUT_FORMAT_RGB888;
-		MemOutConfig.enable = 0;
-		MemOutConfig.dstAddr = mva;
-		MemOutConfig.srcROI.x = 0;
-		MemOutConfig.srcROI.y = 0;
-		MemOutConfig.srcROI.height= DISP_GetScreenHeight();
-		MemOutConfig.srcROI.width= DISP_GetScreenWidth();
-
-//#if !defined(MTK_WFD_SUPPORT) && !defined(MTK_HDMI_SUPPORT)
-		mutex_lock(&MemOutSettingMutex);
-		MemOutConfig.dirty = 1;		
-		mutex_unlock(&MemOutSettingMutex);
-//#endif
-
-		// Wait for reg update.
-		wait_event_interruptible(reg_update_wq, !MemOutConfig.dirty);
-	}
-
-	return DSI_STATUS_OK;
-}
-
-
-DISP_STATUS DISP_Config_Wfd_Overlay_to_Memory(unsigned int mva, int enable)
-{
-//	int ret = 0;
-
-	if(enable)
-	{
-		MemOutConfig.outFormat = WDMA_OUTPUT_FORMAT_UYVY;///WDMA_OUTPUT_FORMAT_YUY2;
-
-		MemOutConfig.enable = 1;
-		MemOutConfig.dstAddr = mva;
-		MemOutConfig.srcROI.x = 0;
-		MemOutConfig.srcROI.y = 0;
-		MemOutConfig.srcROI.height= DISP_GetScreenHeight();
-		MemOutConfig.srcROI.width= DISP_GetScreenWidth();
-
-#if !defined(MTK_WFD_SUPPORT) && !defined(MTK_HDMI_SUPPORT)
-		mutex_lock(&MemOutSettingMutex);
-		MemOutConfig.dirty = 1;
-		mutex_unlock(&MemOutSettingMutex);
-#endif
-	}
-	else
-	{
-		MemOutConfig.outFormat = WDMA_OUTPUT_FORMAT_UYVY;///WDMA_OUTPUT_FORMAT_YUY2;
-		MemOutConfig.enable = 0;
-		MemOutConfig.dstAddr = mva;
-		MemOutConfig.srcROI.x = 0;
-		MemOutConfig.srcROI.y = 0;
-		MemOutConfig.srcROI.height= DISP_GetScreenHeight();
-		MemOutConfig.srcROI.width= DISP_GetScreenWidth();
-
-//#if !defined(MTK_WFD_SUPPORT) && !defined(MTK_HDMI_SUPPORT)
-		mutex_lock(&MemOutSettingMutex);
-		MemOutConfig.dirty = 1;		
-		mutex_unlock(&MemOutSettingMutex);
-//#endif
-
-		// Wait for reg update.
-		wait_event_interruptible(reg_update_wq, !MemOutConfig.dirty);
-	}
-
-	return DSI_STATUS_OK;
-}	
-
-DISP_STATUS HDMI_Config_Overlay_to_Memory(unsigned int mva, int enable, unsigned int moutFormat)
-{
-    //  int ret = 0;
-
-    //  struct disp_path_config_mem_out_struct mem_out = {0};
-	MemOutConfig.outFormat = moutFormat;
-    if (enable)
-    {
-
-        MemOutConfig.enable = 1;
-        MemOutConfig.dstAddr = mva;
-        MemOutConfig.srcROI.x = 0;
-        MemOutConfig.srcROI.y = 0;
-        MemOutConfig.srcROI.height = DISP_GetScreenHeight();
-        MemOutConfig.srcROI.width = DISP_GetScreenWidth();
-
-#if !defined(MTK_WFD_SUPPORT) && !defined(MTK_HDMI_SUPPORT)
-        mutex_lock(&MemOutSettingMutex);
-        MemOutConfig.dirty = 1;
-        mutex_unlock(&MemOutSettingMutex);
-#endif
-    }
-    else
-    {
-        MemOutConfig.enable = 0;
-        MemOutConfig.dstAddr = mva;
-        MemOutConfig.srcROI.x = 0;
-        MemOutConfig.srcROI.y = 0;
-        MemOutConfig.srcROI.height = DISP_GetScreenHeight();
-        MemOutConfig.srcROI.width = DISP_GetScreenWidth();
-
-        //#if !defined(MTK_WFD_SUPPORT) && !defined(MTK_HDMI_SUPPORT)
-        mutex_lock(&MemOutSettingMutex);
-        MemOutConfig.dirty = 1;
-        mutex_unlock(&MemOutSettingMutex);
-        //#endif
-
-        // Wait for reg update.
-        wait_event_interruptible(reg_update_wq, !MemOutConfig.dirty);
-    }
-
-	printk("HDMI_Config_Overlay_to_Memory done: %d\n",enable);
-    return DSI_STATUS_OK;
-}
-
-DISP_STATUS DISP_Capture_Framebuffer( unsigned int pvbuf, unsigned int bpp, unsigned int is_early_suspended )
-{
-    unsigned int mva;
-    unsigned int ret = 0;
-    M4U_PORT_STRUCT portStruct;
 	DISP_FUNC();
 	disp_drv_init_context();
-	disp_module_clock_on(DISP_MODULE_WDMA1, "Screen Capture");
 
-    if (is_early_suspended)
-    {
-        if(lcm_params->type==LCM_TYPE_DSI)
-        {
-            DSI_SetMode(lcm_params->dsi.mode);
-        }
-    }
-
-    MMProfileLogEx(MTKFB_MMP_Events.CaptureFramebuffer, MMProfileFlagPulse, 0, pvbuf);
-    MMProfileLogEx(MTKFB_MMP_Events.CaptureFramebuffer, MMProfileFlagPulse, 1, bpp);
-    ret = m4u_alloc_mva(M4U_CLNTMOD_WDMA, 
-        pvbuf, 
-        DISP_GetScreenHeight()*DISP_GetScreenWidth()*bpp/8, 
-        0,
-        0,
-        &mva);
-    if(ret!=0)
-    {
-		disp_module_clock_off(DISP_MODULE_WDMA1, "Screen Capture");    
-        printk("m4u_alloc_mva() fail! \n");
-        return DSI_STATUS_OK;  
-    }
-
-    m4u_dma_cache_maint(M4U_CLNTMOD_WDMA, 
-        (const void *)pvbuf, 
-        DISP_GetScreenHeight()*DISP_GetScreenWidth()*bpp/8,
-        DMA_BIDIRECTIONAL);
-
-    portStruct.ePortID = M4U_PORT_WDMA1;		   //hardware port ID, defined in M4U_PORT_ID_ENUM
-    portStruct.Virtuality = 1;						   
-    portStruct.Security = 0;
-    portStruct.domain = 0;            //domain : 0 1 2 3
-    portStruct.Distance = 1;
-    portStruct.Direction = 0; 	
-    m4u_config_port(&portStruct);
-
-    mutex_lock(&MemOutSettingMutex);
-    if(bpp == 32)
-        MemOutConfig.outFormat = WDMA_OUTPUT_FORMAT_ARGB;
-    else if(bpp == 16)
-        MemOutConfig.outFormat = WDMA_OUTPUT_FORMAT_RGB565;
-    else if(bpp == 24)
-        MemOutConfig.outFormat = WDMA_OUTPUT_FORMAT_RGB888;
-    else
-    {
-        printk("DSI_Capture_FB, fb color format not support\n");
-        MemOutConfig.outFormat = WDMA_OUTPUT_FORMAT_RGB888;
-    }
-
-    MemOutConfig.enable = 1;
-    MemOutConfig.dstAddr = mva;
-    MemOutConfig.srcROI.x = 0;
-    MemOutConfig.srcROI.y = 0;
-    MemOutConfig.srcROI.height= DISP_GetScreenHeight();
-    MemOutConfig.srcROI.width= DISP_GetScreenWidth();
-    if (is_early_suspended == 0)
-        MemOutConfig.dirty = 1;
-    mutex_unlock(&MemOutSettingMutex);
-    MMProfileLogEx(MTKFB_MMP_Events.CaptureFramebuffer, MMProfileFlagPulse, 2, mva);
-    if (is_early_suspended)
-    {
-        disp_path_get_mutex();
-        disp_path_config_mem_out_without_lcd(&MemOutConfig);
-        disp_path_release_mutex();
-        // Wait for mem out done.
-        disp_path_wait_mem_out_done();
-        MMProfileLogEx(MTKFB_MMP_Events.CaptureFramebuffer, MMProfileFlagPulse, 3, 0);
-        MemOutConfig.enable = 0;
-        if (lcm_params->type == LCM_TYPE_DPI)
-            disp_path_get_mutex();
-        disp_path_config_mem_out_without_lcd(&MemOutConfig);
-        if (lcm_params->type == LCM_TYPE_DPI)
-            disp_path_release_mutex();
-    }
-    else
-    {
-        // Wait for mem out done.
-        disp_path_wait_mem_out_done();
-        MMProfileLogEx(MTKFB_MMP_Events.CaptureFramebuffer, MMProfileFlagPulse, 3, 0);
-
-        mutex_lock(&MemOutSettingMutex);
-        MemOutConfig.enable = 0;
-        MemOutConfig.dirty = 1;
-        mutex_unlock(&MemOutSettingMutex);
-        // Wait for reg update.
-        wait_event_interruptible(reg_update_wq, !MemOutConfig.dirty);
-        MMProfileLogEx(MTKFB_MMP_Events.CaptureFramebuffer, MMProfileFlagPulse, 4, 0);
-    }
-
-    BOOL deconfigWdma = TRUE;
-
-#if defined(MTK_HDMI_SUPPORT)
-    deconfigWdma &= !is_hdmi_active();
-#endif
-
-#if defined(MTK_WFD_SUPPORT)
-    deconfigWdma &= !is_wfd_active();
-#endif
-
-    if(deconfigWdma)
-    {
-        portStruct.ePortID = M4U_PORT_WDMA1;		   //hardware port ID, defined in M4U_PORT_ID_ENUM
-        portStruct.Virtuality = 0;
-        portStruct.Security = 0;
-        portStruct.domain = 0;			  //domain : 0 1 2 3
-        portStruct.Distance = 1;
-        portStruct.Direction = 0;
-        m4u_config_port(&portStruct);
-    }
-
-    m4u_dealloc_mva(M4U_CLNTMOD_WDMA, 
-        pvbuf, 
-        DISP_GetScreenHeight()*DISP_GetScreenWidth()*bpp/8, 
-        mva);
-
-	disp_module_clock_off(DISP_MODULE_WDMA1, "Screen Capture");    
-
-	return DISP_STATUS_OK;
+	return (disp_drv->capture_framebuffer) ?
+		(disp_drv->capture_framebuffer(pvbuf, bpp)) :
+		DISP_STATUS_NOT_IMPLEMENTED;
 }
 
 DISP_STATUS DISP_Capture_Videobuffer(unsigned int pvbuf, unsigned int bpp, unsigned int video_rotation)
@@ -2587,7 +1410,7 @@ DISP_STATUS DISP_Capture_Videobuffer(unsigned int pvbuf, unsigned int bpp, unsig
 // xuecheng, 2010-09-19
 // this api is for mATV signal interfere workaround.
 // immediate update == (TE disabled + delay update in overlay mode disabled)
-static BOOL is_immediateupdate = false;
+static BOOL is_immediateupdate = FALSE;
 DISP_STATUS DISP_ConfigImmediateUpdate(BOOL enable)
 {
 	disp_drv_init_context();
@@ -2877,7 +1700,6 @@ BOOL DISP_EsdCheck(void)
     BOOL result = FALSE;
 
     disp_drv_init_context();
-    MMProfileLogEx(MTKFB_MMP_Events.EsdCheck, MMProfileFlagPulse, 0x10, 0);
 
     if(lcm_drv->esd_check == NULL && disp_drv->esd_check == NULL)
     {
@@ -2888,7 +1710,6 @@ BOOL DISP_EsdCheck(void)
         printk("ERROR: Can't get sem_update_screen in DISP_EsdCheck()\n");
         return FALSE;
     }
-    MMProfileLogEx(MTKFB_MMP_Events.EsdCheck, MMProfileFlagPulse, 0x11, 0);
 
     if(is_lcm_in_suspend_mode)
     {
@@ -2898,21 +1719,14 @@ BOOL DISP_EsdCheck(void)
 
 	if(disp_drv->esd_check)
 		result |= disp_drv->esd_check();
-    MMProfileLogEx(MTKFB_MMP_Events.EsdCheck, MMProfileFlagPulse, 0x12, 0);
 
-#ifndef MT65XX_NEW_DISP
     LCD_CHECK_RET(LCD_WaitForNotBusy());
     if(lcm_params->type==LCM_TYPE_DSI)
         DSI_CHECK_RET(DSI_WaitForNotBusy());
 
 	if(lcm_drv->esd_check)
-    {
-        mutex_lock(&LcmCmdMutex);
 		result |= lcm_drv->esd_check();
-        mutex_unlock(&LcmCmdMutex);
-    }
-#endif
-
+    
     up(&sem_update_screen);
 
     return result;
@@ -2968,45 +1782,14 @@ BOOL DISP_EsdRecover(void)
         disp_drv->esd_reset();
 
     /// LCM recover
-    mutex_lock(&LcmCmdMutex);
     result = lcm_drv->esd_recover();
-    mutex_unlock(&LcmCmdMutex);
 
     up(&sem_update_screen);
 
-	DISP_CHECK_RET(DISP_UpdateScreen(0, 0, DISP_GetScreenWidth(), DISP_GetScreenHeight()));
     return result;
 }
 
 unsigned long DISP_GetLCMIndex(void)
 {
     return u4IndexOfLCMList;
-}
-
-DISP_STATUS DISP_PrepareSuspend(void)
-{
-    if(lcm_params->type==LCM_TYPE_DSI && lcm_params->dsi.mode != CMD_MODE)
-    {		
-        DSI_SetMode(CMD_MODE);
-    }
-    return DISP_STATUS_OK;
-}
-
-DISP_STATUS DISP_GetLayerInfo(DISP_LAYER_INFO *pLayer)
-{
-    int id = pLayer->id;
-    mutex_lock(&OverlaySettingMutex);
-    pLayer->curr_en = captured_layer_config[id].layer_en;
-    pLayer->next_en = cached_layer_config[id].layer_en;
-    pLayer->hw_en = realtime_layer_config[id].layer_en;
-    pLayer->curr_idx = captured_layer_config[id].buff_idx;
-    pLayer->next_idx = cached_layer_config[id].buff_idx;
-    pLayer->hw_idx = realtime_layer_config[id].buff_idx;
-    pLayer->curr_identity = captured_layer_config[id].identity;
-    pLayer->next_identity = cached_layer_config[id].identity;
-    pLayer->hw_identity = realtime_layer_config[id].identity;
-    pLayer->curr_conn_type = captured_layer_config[id].connected_type;
-    pLayer->next_conn_type = cached_layer_config[id].connected_type;
-    pLayer->hw_conn_type = realtime_layer_config[id].connected_type;
-    mutex_unlock(&OverlaySettingMutex);
 }

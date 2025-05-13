@@ -82,6 +82,15 @@ static wait_queue_head_t _dsi_wait_queue;
 static wait_queue_head_t _dsi_dcs_read_wait_queue;
 #endif
 
+#ifndef OUTREGBIT
+#define OUTREGBIT(TYPE,REG,bit,value)  \
+                    do {    \
+                        TYPE r = *((TYPE*)&INREG32(&REG));    \
+                        r.bit = value;    \
+                        OUTREG32(&REG, AS_UINT32(&r));    \
+                    } while (0)
+#endif
+
 /*
 #define PLL_BASE			(0xF0060000)
 #define DSI_PHY_BASE		(0xF0060B00)
@@ -451,6 +460,27 @@ DSI_STATUS DSI_DisableClk(void)
     return DSI_STATUS_OK;
 }
 
+DSI_STATUS DSI_RegUpdate(void)
+{
+	UINT32 dsi_wait_time = 0;
+	printk("[wwy] enter DSI_RegUpdate\n");
+	//MASKREG32(0x14011000, 0x1, 0x1); //Enable DISP MUTEX0
+	//MASKREG32(0x14011004, 0x1, 0x0);
+	while((INREG32(0x14011004)&0x1) != 0x1) // polling DISP MUTEX0
+	{
+	    printk("[wwy] DSI_RegUpdate dsi_wait_time = %d\n",dsi_wait_time);
+		udelay(50);//sleep 50us
+		dsi_wait_time++;
+		if(dsi_wait_time > 40000){
+			DISP_LOG_PRINT(ANDROID_LOG_WARN, "DSI", "Wait for DISP MUTEX0 IRQ timeout!!!\n");
+			break;
+		}
+	}
+	MASKREG32(0x14011004, 0x1, 0x0);
+	printk("[wwy] end DSI_RegUpdate\n");
+	//mdelay(500);//sleep 50us
+	return DSI_STATUS_OK;
+}
 
 DSI_STATUS DSI_Reset(void)
 {
@@ -461,6 +491,13 @@ DSI_STATUS DSI_Reset(void)
     return DSI_STATUS_OK;
 }
 
+DSI_STATUS DSI_LP_Reset(void)
+{
+	_WaitForEngineNotBusy();
+	OUTREGBIT(DSI_COM_CTRL_REG,DSI_REG->DSI_COM_CTRL,DSI_RESET,1);
+	OUTREGBIT(DSI_COM_CTRL_REG,DSI_REG->DSI_COM_CTRL,DSI_RESET,0);
+    return DSI_STATUS_OK;
+}
 
 DSI_STATUS DSI_SetMode(unsigned int mode)
 {
@@ -1011,6 +1048,249 @@ void DSI_set_cmdq_V2(unsigned cmd, unsigned char count, unsigned char *para_list
 
 }
 
+void DSI_set_cmdq_V3(LCM_setting_table_V3 *para_tbl, unsigned int size, unsigned char force_update)
+{
+	UINT32 i, layer, layer_state, lane_num;
+	UINT32 goto_addr, mask_para, set_para;
+	UINT32 fbPhysAddr, fbVirAddr;
+	DSI_T0_INS t0;	
+	DSI_T1_INS t1;	
+	DSI_T2_INS t2;	
+
+	UINT32 index = 0;
+
+	unsigned char data_id, cmd, count;
+	unsigned char *para_list;
+
+	do {
+		data_id = para_tbl[index].id;
+		cmd = para_tbl[index].cmd;
+		count = para_tbl[index].count;
+		para_list = para_tbl[index].para_list;
+
+		if (data_id == REGFLAG_ESCAPE_ID && cmd == REGFLAG_DELAY_MS_V3)
+		{
+			udelay(1000*count);
+			DISP_LOG_PRINT(ANDROID_LOG_INFO, "DSI", "DSI_set_cmdq_V3[%d]. Delay %d (ms) \n", index, count);
+
+			continue;
+		}
+
+		_WaitForEngineNotBusy();
+#if 0		
+		if (count > 59)
+		{
+			UINT32 pixel = count/3 + ((count%3) ? 1 : 0);
+			
+			LCD_REG_LAYER	fb_layer_info;
+			LCD_REG_DSI_DC	dsi_info;
+			BOOL			lcd_w2m, lcm_te_enable;
+
+			// backup layer state.
+			layer_state = AS_UINT32(&LCD_REG->WROI_CONTROL) & 0xFC000000;
+
+			// backup FB layer info.
+			memcpy((void *)&fb_layer_info, (void *)&LCD_REG->LAYER[FB_LAYER], sizeof(LCD_REG_LAYER));
+
+			// backup LCD-DSI I/F configuration.
+			dsi_info = LCD_REG->DS_DSI_CON;
+
+			// backup lane number.
+			lane_num = DSI_REG->DSI_TXRX_CTRL.LANE_NUM;
+
+			// backup lcd_w2m
+			lcd_w2m = LCD_REG->WROI_CONTROL.W2M;
+
+			// backup TE enable
+			lcm_te_enable = LCD_REG->TEARING_CFG.ENABLE;
+
+			// HW limitation.
+			// LP type-1 command can't go with 2 lanes. So we must switch to lane mode.
+			DSI_REG->DSI_TXRX_CTRL.LANE_NUM = 1;
+			DSI_PHY_REG->MIPITX_CON1.RG_DSI_CK_SEL = 0;
+
+			// Modify LCD-DSI configuration
+			LCD_REG->DS_DSI_CON.DC_DSI = TRUE;
+			// Let LSB of RGB(BGR in buffer) first.
+			LCD_REG->DS_DSI_CON.RGB_SWAP = LCD_DSI_IF_FMT_COLOR_ORDER_BGR;
+			// Let parameters be in unit of byte.
+			LCD_REG->DS_DSI_CON.CLR_FMT = LCD_DSI_IF_FORMAT_RGB888;
+			// Disable W2M
+			LCD_REG->WROI_CONTROL.W2M = 0;
+
+			// HW limitation
+			// It makes package numbers > 1.
+			LCD_REG->DS_DSI_CON.PACKET_SIZE = 256;
+
+			// Disable TE
+			LCD_TE_Enable(0);
+
+			// Start of Enable only one layer (FB layer) to push data to DSI
+			LCD_CHECK_RET(LCD_LayerEnable(LCD_LAYER_ALL, FALSE));
+			LCD_CHECK_RET(LCD_LayerEnable(FB_LAYER, TRUE));
+			LCD_CHECK_RET(LCD_SetRoiWindow(0, 0, pixel, 1));
+			LCD_CHECK_RET(LCD_SetBackgroundColor(0));
+#if 1
+//#ifdef BUILD_LK
+			LCD_REG->LAYER[FB_LAYER].ADDRESS = para_list;
+#else      
+			// operates on FB layer
+			{
+				extern void disp_get_fb_address(UINT32 *fbVirAddr, UINT32 *fbPhysAddr);
+				disp_get_fb_address(&fbVirAddr ,&fbPhysAddr);
+
+				// copy parameters to FB layer buffer.
+				memcpy((void *)fbVirAddr, (void *)para_list, count);
+				//LCD_REG->LAYER[FB_LAYER].ADDRESS = fbPhysAddr;
+			}
+#endif
+			LCD_CHECK_RET(LCD_LayerSetFormat(FB_LAYER, LCD_LAYER_FORMAT_RGB888));
+			LCD_CHECK_RET(LCD_LayerSetPitch(FB_LAYER, pixel*3));
+			LCD_CHECK_RET(LCD_LayerSetOffset(FB_LAYER, 0, 0));
+			LCD_CHECK_RET(LCD_LayerSetSize(FB_LAYER, pixel, 1));
+			// End of Enable only one layer (FB layer) to push data to DSI
+
+			t1.CONFG = 1;
+			t1.Data_ID = data_id;	
+			t1.mem_start0 = (cmd&0xFF);
+			t1.mem_start1 = (cmd>>8);
+
+			OUTREG32(&DSI_CMDQ_REG->data0[0], AS_UINT32(&t1));
+			OUTREG32(&DSI_REG->DSI_CMDQ_SIZE, 1);	
+
+			DISP_LOG_PRINT(ANDROID_LOG_INFO, "DSI", "[DISP] - kernel - DSI_set_cmdq_V3[%d]. command(0x%x) parameter count = %d > 59, pixel = %d \n", index, cmd, count, pixel);
+			DISP_LOG_PRINT(ANDROID_LOG_INFO, "DSI", "[DISP] - kernel - command queue only support 16 x 4 bytes. Header used 4 byte. DCS used 1 byte. If parameter > 59 byte, work around by Type-1 command. \n");
+			DISP_LOG_PRINT(ANDROID_LOG_INFO, "DSI", "para_list[%d] = {", count);
+			for (i = 0; i < count; i++)
+				DISP_LOG_PRINT(ANDROID_LOG_INFO, "DSI", "0x%02x, ", para_list[i]);
+			DISP_LOG_PRINT(ANDROID_LOG_INFO, "DSI", "} \n");
+
+//#ifdef BUILD_LK
+#if 1
+			if(force_update)
+			{
+				LCD_CHECK_RET(LCD_StartTransfer(FALSE));
+				DSI_EnableClk();
+
+				while(DSI_REG->DSI_STA.BUSY || DSI_REG->DSI_STATE_DBG4.EXE_STATE != 1) {
+					printk("[DISP - uboot - DSI Busy : %d, DSI_STATE_DBG4.EXE_STATE = %d, LCD Busy : %d \n", DSI_REG->DSI_STA.BUSY, DSI_REG->DSI_STATE_DBG4.EXE_STATE, LCD_REG->STATUS.BUSY);
+					if (DSI_REG->DSI_STATE_DBG4.EXE_STATE == 2 && !LCD_REG->STATUS.BUSY) {
+						DSI_Reset();
+					}				
+				}
+								
+			}
+#else      
+			//LCD_M4U_On(0);
+
+			if(force_update)
+			{
+				LCD_CHECK_RET(LCD_StartTransfer(FALSE));		
+				DSI_EnableClk();
+
+				while (_IsEngineBusy())
+				{
+					long ret = wait_event_interruptible_timeout(_dsi_wait_queue, 
+																!_IsEngineBusy(),
+																1 * HZ);
+					if (0 == ret) {
+						DISP_LOG_PRINT(ANDROID_LOG_WARN, "DSI", "[%s] Wait for DSI engine not busy timeout!!! Busy : %d, DSI_STATE_DBG4.EXE_STATE = %d \n", __func__, DSI_REG->DSI_STA.BUSY, DSI_REG->DSI_STATE_DBG4.EXE_STATE);
+						if (DSI_REG->DSI_STATE_DBG4.EXE_STATE == 2) {
+							DSI_Reset();
+						}
+					}
+				}
+			}
+
+			//LCD_M4U_On(1);
+#endif
+			// restore FB layer info.
+			memcpy((void *)&LCD_REG->LAYER[FB_LAYER], (void *)&fb_layer_info, sizeof(LCD_REG_LAYER));
+
+			// restore LCD-DSI I/F configuration.
+			LCD_REG->DS_DSI_CON = dsi_info;
+
+			// restore lane number.
+			DSI_REG->DSI_TXRX_CTRL.LANE_NUM = lane_num;
+			DSI_PHY_REG->MIPITX_CON1.RG_DSI_CK_SEL = (lane_num - 1);
+			
+			// restore layer state.
+			for(layer=LCD_LAYER_0; layer<LCD_LAYER_NUM; layer++)
+			{
+				if(layer_state&(0x80000000>>layer))
+					LCD_CHECK_RET(LCD_LayerEnable(layer, TRUE));
+				else
+					LCD_CHECK_RET(LCD_LayerEnable(layer, FALSE));
+			}
+
+			// restore lcd_w2m
+			if (lcd_w2m)
+				LCD_REG->WROI_CONTROL.W2M = 1;
+
+			// restore TE
+			if(lcm_te_enable)
+				LCD_TE_Enable(1);
+
+		}
+		else
+#endif
+		{
+			//for(i = 0; i < sizeof(DSI_CMDQ_REG->data0) / sizeof(DSI_CMDQ); i++)
+			//	OUTREG32(&DSI_CMDQ_REG->data0[i], 0);
+			//memset(&DSI_CMDQ_REG->data0, 0, sizeof(DSI_CMDQ_REG->data[0]));
+			OUTREG32(&DSI_CMDQ_REG->data0, 0);
+		
+			if (count > 1)
+			{
+				t2.CONFG = 2;
+				t2.Data_ID = data_id;
+				t2.WC16 = count+1;
+
+				OUTREG32(&DSI_CMDQ_REG->data0->byte0, AS_UINT32(&t2));
+
+				goto_addr = (UINT32)(&DSI_CMDQ_REG->data1->byte0);
+				mask_para = (0xFF<<((goto_addr&0x3)*8));
+				set_para = (cmd<<((goto_addr&0x3)*8));
+				MASKREG32(goto_addr&(~0x3), mask_para, set_para);
+				
+				for(i=0; i<count; i++)
+				{
+					goto_addr = (UINT32)(&DSI_CMDQ_REG->data1->byte1) + i;
+					mask_para = (0xFF<<((goto_addr&0x3)*8));
+					set_para = (para_list[i]<<((goto_addr&0x3)*8));
+					MASKREG32(goto_addr&(~0x3), mask_para, set_para);			
+				}
+
+				OUTREG32(&DSI_REG->DSI_CMDQ_SIZE, 2+(count)/4); 		
+			}
+			else
+			{
+				t0.CONFG = 0;
+				t0.Data0 = cmd;
+				if (count)
+				{
+					t0.Data_ID = data_id;
+					t0.Data1 = para_list[0];
+				}
+				else
+				{
+					t0.Data_ID = data_id;
+					t0.Data1 = 0;
+				}
+				OUTREG32(&DSI_CMDQ_REG->data0, AS_UINT32(&t0));
+				OUTREG32(&DSI_REG->DSI_CMDQ_SIZE, 1);
+			}
+
+			//for (i = 0; i < AS_UINT32(&DSI_REG->DSI_CMDQ_SIZE); i++)
+			//	DISP_LOG_PRINT(ANDROID_LOG_INFO, "DSI", "DSI_set_cmdq_V3[%d]. DSI_CMDQ+%04x : 0x%08x\n", index, i*4, INREG32(DSI_BASE + 0x180 + i*4));
+
+			if(force_update)
+				DSI_EnableClk();
+		}
+
+	} while (++index < size);
+
+}
 
 void DSI_set_cmdq(unsigned int *pdata, unsigned int queue_size, unsigned char force_update)
 {

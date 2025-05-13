@@ -10,24 +10,9 @@ S32 pwrap_write( U32  adr, U32  wdata );
 S32 pwrap_wacs2( U32  write, U32  adr, U32  wdata, U32 *rdata );
 //---end ---external API----------------------------------------------------
 
-//---start ---internal API--------------------------------------------------
-static S32 _pwrap_wacs2_nochk( U32 write, U32 adr, U32 wdata, U32 *rdata );
-static S32 _pwrap_reset_spislv(void);
-static S32 _pwrap_init_dio( U32 dio_en );
-static S32 _pwrap_init_cipher( void );
-static S32 _pwrap_init_sidly( void );
-static S32 _pwrap_init_reg_clock( U32 regck_sel );
-static bool _pwrap_timeout_ns (U64 start_time_ns, U64 timeout_time_ns);
-static U64 _pwrap_get_current_time(void);
-static U64 _pwrap_time2ns (U64 time_us);
-static S32 pwrap_read_nochk( U32  adr, U32 *rdata );
-static S32 pwrap_write_nochk( U32  adr, U32  wdata );
-static S32 _pwrap_wacs2_nochk( U32 write, U32 adr, U32 wdata, U32 *rdata );
-static S32 pwrap_init ( void );
 #ifdef CFG_MT6589_FPGA
 int  pwrap_init_for_early_porting(void);
 #endif
-//---end--internal API--------------------------------------------------
 
 /******************************************************************************
 pmic_wrap register define

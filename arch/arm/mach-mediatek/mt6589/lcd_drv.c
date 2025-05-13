@@ -67,15 +67,19 @@
 *  THE RULES OF THE INTERNATIONAL CHAMBER OF COMMERCE (ICC).
 *
 *****************************************************************************/
+#include <linux/compat.h>
+
+#define VSYNC_US_TO_NS(x) (x * 1000)
+
 #define ENABLE_LCD_INTERRUPT 0
 
 #include <asm/arch/disp_drv_platform.h>
 
 #include "debug.h"
-#include <asm/current.h>
-#include <asm/pgtable.h>
-#include <asm/page.h>
-#endif
+//#include <asm/current.h>
+//#include <asm/pgtable.h>
+//#include <asm/page.h>
+
 #define LCD_OUTREG32(addr, data)	\
 		{\
 		OUTREG32(addr, data);}
@@ -248,6 +252,17 @@ static void _WaitForEngineNotBusy(void)
 #endif    
 }
 
+void LCD_WaitTE(void)
+{
+}
+
+void LCD_InitVSYNC(unsigned int vsync_interval)
+{
+}
+
+void LCD_PauseVSYNC(BOOL enable)
+{
+}
 
 static void _BackupLCDRegisters(void)
 {
@@ -2489,8 +2504,8 @@ LCD_STATUS LCD_W2TVR_NeedLimiteSpeed(BOOL enable)
 
 LCD_STATUS LCD_SetGMCThrottle()
 {
-    UINT16 i, pitch, h;
 #if 0
+    UINT16 i, pitch, h;
 	UINT32 total_req = 0;
 	INT32 throttle_cnt = 0;
 
