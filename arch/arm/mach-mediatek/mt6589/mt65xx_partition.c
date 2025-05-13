@@ -27,6 +27,7 @@
 #include "config.h"
 #include "mt65xx_partition.h"
 #include "pmt.h"
+#include <dm/device.h>
 
 /* BUG BUG: temp */
 #define DBGMSG(...)
@@ -111,7 +112,7 @@ part_t mt6575_parts[] = {
 #ifdef CFG_USE_BOOTIMG_PARTITION
     {
         .name   = PART_BOOTIMG,
-        .blknum = PART_BLKS_BOOTIMIG,
+        .blknum = PART_BLKS_BOOTIMG,
         .flags  = PART_FLAG_NONE,
     },
 #endif
@@ -167,7 +168,7 @@ part_t mt6575_parts[] = {
 #ifdef CFG_USE_ANDROID_SYSIMG_PARTITION
     {
         .name   = PART_ANDSYSIMG,
-        .blknum = PART_BLKS_SYSIMG,
+        .blknum = PART_BLKS_ANDSYSIMG,
         .flags  = PART_FLAG_NONE,
     },
 #endif
@@ -277,9 +278,9 @@ part_t* mt6575_part_get_partition(char *name)
 
 int mt6575_part_generic_read(part_dev_t *dev, ulong src, uchar *dst, int size)
 {
-    int dev_id = dev->id;
     uchar *buf = &mt6575_part_buf[0];
     struct blk_desc *blkdev = dev->blkdev;
+    struct blk_ops *blkops = (struct blk_ops *)blkdev->bdev->driver->ops;
 	ulong end, part_start, part_end, part_len, aligned_start, aligned_end;
     ulong blknr, blkcnt;
 
@@ -301,7 +302,7 @@ int mt6575_part_generic_read(part_dev_t *dev, ulong src, uchar *dst, int size)
 	if (part_start) {
 	    blknr = aligned_start >> BLK_BITS;	
 		part_len = BLK_SIZE - part_start;
-		if ((blkdev->block_read(dev_id, blknr, 1, (unsigned long*)buf)) != 1)
+		if ((blkops->read(blkdev->bdev, blknr, 1, (unsigned long*)buf)) != 1)
 			return -EIO;
 		memcpy(dst, buf + part_start, part_len);
 		dst += part_len;
@@ -312,7 +313,7 @@ int mt6575_part_generic_read(part_dev_t *dev, ulong src, uchar *dst, int size)
 	blknr  = aligned_start >> BLK_BITS;
 	blkcnt = (aligned_end - aligned_start) >> BLK_BITS;
 	
-	if ((blkdev->block_read(dev_id, blknr, blkcnt, (unsigned long *)(dst))) != blkcnt)
+	if ((blkops->read(blkdev->bdev, blknr, blkcnt, (unsigned long *)(dst))) != blkcnt)
 		return -EIO;
 
     src += (blkcnt << BLK_BITS);
@@ -320,7 +321,7 @@ int mt6575_part_generic_read(part_dev_t *dev, ulong src, uchar *dst, int size)
 
 	if (part_end && src < end) {
 	    blknr = aligned_end >> BLK_BITS;	
-		if ((blkdev->block_read(dev_id, blknr, 1, (unsigned long*)buf)) != 1)
+		if ((blkops->read(blkdev->bdev, blknr, 1, (unsigned long*)buf)) != 1)
 			return -EIO;
 		memcpy(dst, buf, part_end);
 	}
@@ -329,9 +330,9 @@ int mt6575_part_generic_read(part_dev_t *dev, ulong src, uchar *dst, int size)
 
 static int mt6575_part_generic_write(part_dev_t *dev, uchar *src, ulong dst, int size)
 {
-    int dev_id = dev->id;
     uchar *buf = &mt6575_part_buf[0];
     struct blk_desc *blkdev = dev->blkdev;
+    struct blk_ops *blkops = (struct blk_ops *)blkdev->bdev->driver->ops;
 	ulong end, part_start, part_end, part_len, aligned_start, aligned_end;
     ulong blknr, blkcnt;
 
@@ -353,10 +354,10 @@ static int mt6575_part_generic_write(part_dev_t *dev, uchar *src, ulong dst, int
 	if (part_start) {
 	    blknr = aligned_start >> BLK_BITS;	
 		part_len = BLK_SIZE - part_start;
-		if ((blkdev->block_read(dev_id, blknr, 1, (unsigned long*)buf)) != 1)
+		if ((blkops->read(blkdev->bdev, blknr, 1, (unsigned long*)buf)) != 1)
 			return -EIO;
 		memcpy(buf + part_start, src, part_len);
-    	if ((blkdev->block_write(dev_id, blknr, 1, (unsigned long*)buf)) != 1)
+    	if ((blkops->write(blkdev->bdev, blknr, 1, (unsigned long*)buf)) != 1)
         	return -EIO;
 		dst += part_len;
         src += part_len;
@@ -366,7 +367,7 @@ static int mt6575_part_generic_write(part_dev_t *dev, uchar *src, ulong dst, int
 	blknr  = aligned_start >> BLK_BITS;
 	blkcnt = (aligned_end - aligned_start) >> BLK_BITS;
 
-	if ((blkdev->block_write(dev_id, blknr, blkcnt, (unsigned long *)(dst))) != blkcnt)
+	if ((blkops->write(blkdev->bdev, blknr, blkcnt, (unsigned long *)(dst))) != blkcnt)
 		return -EIO;
     
     src += (blkcnt << BLK_BITS);
@@ -374,11 +375,11 @@ static int mt6575_part_generic_write(part_dev_t *dev, uchar *src, ulong dst, int
 
 	if (part_end && dst < end) {
 	    blknr = aligned_end >> BLK_BITS;	
-		if ((blkdev->block_read(dev_id, blknr, 1, (unsigned long*)buf)) != 1) {
+		if ((blkops->read(blkdev->bdev, blknr, 1, (unsigned long*)buf)) != 1) {
 			return -EIO;
 		}
 		memcpy(buf, src, part_end);
-    	if ((blkdev->block_write(dev_id, blknr, 1, (unsigned long*)buf)) != 1) {
+    	if ((blkops->write(blkdev->bdev, blknr, 1, (unsigned long*)buf)) != 1) {
             return -EIO;
     	}
 	}

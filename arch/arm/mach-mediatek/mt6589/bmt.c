@@ -1,5 +1,5 @@
-#include <asm/arch/bmt.h>
 #include <linux/mtd/rawnand.h>
+#include <asm/arch/bmt.h>
 
 typedef struct
 {
@@ -142,7 +142,7 @@ bool nand_erase_bmt(u32 offset)
 
 int mark_block_bad_bmt(u32 offset)
 {
-    return;                     //mark_block_bad_hw(offset);
+    return 0;                     //mark_block_bad_hw(offset);
 }
 
 bool nand_write_page_bmt(u32 page, u8 * dat, u8 * oob)

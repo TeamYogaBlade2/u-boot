@@ -1,6 +1,8 @@
 #include <asm/arch/mt65xx.h>
 #include <asm/arch/mt65xx_typedefs.h>
 #include <asm/arch/mt6575_irq.h>
+#include <asm/barriers.h>
+#include <stdio.h>
 
 #define GIC_ICDISER0    (GIC_DIST_BASE + 0x100)
 #define GIC_ICDISER1    (GIC_DIST_BASE + 0x104)

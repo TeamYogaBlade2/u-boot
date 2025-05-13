@@ -4,6 +4,7 @@
 #include <asm/arch/upmu_common.h>
 #include <asm/arch/upmu_hw.h>
 #include "asm/arch/mt_pmic_wrap_uboot.h"
+#include <stdio.h>
 
 //==============================================================================
 // PMIC lock/unlock APIs

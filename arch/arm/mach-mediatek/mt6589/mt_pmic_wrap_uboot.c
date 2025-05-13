@@ -51,6 +51,7 @@
 #include <asm/arch/mtk_timer.h> //build error
 #include <asm/arch/mt65xx_typedefs.h>
 #include "asm/arch/mt_pmic_wrap_uboot.h"
+#include <stdio.h>
 
 //---start ---internal API--------------------------------------------------
 static S32 _pwrap_wacs2_nochk( U32 write, U32 adr, U32 wdata, U32 *rdata );

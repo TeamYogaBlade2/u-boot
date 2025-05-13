@@ -41,4 +41,4 @@ obj-y += mt6575.o \
   mtk_pmic_6320.o \
   lowlevel_init.o \
   mt65xx_partition.o \
-  mt65xx_lcm_list.c
+  lcm/mt65xx_lcm_list.c
