@@ -1,13 +1,27 @@
 if ARCH_MEDIATEK
 
+config LEAVE_MEDIATEK
+	bool "Stop MediaTek default settings"
+	default n
+	help
+	  SYS_BOARD, SYS_VENDOR
+
 config SYS_SOC
 	default "mediatek"
 
 config SYS_VENDOR
-	default "mediatek"
+	default "mediatek" if !LEAVE_MEDIATEK
 
 choice
 	prompt "MediaTek board select"
+
+config TARGET_MT6589
+	bool "MediaTek MT6589 SoC"
+	select CPU_V7A
+	help
+	  The MediaTek MT6589 is a ARM-based SoC with a quad-core Cortex-A7
+	  including NEON and GPU, PowerVR SGX544, and so on.
+	  It also supports the MT8125 and MT8389.
 
 config TARGET_MT7622
 	bool "MediaTek MT7622 SoC"
@@ -123,24 +137,26 @@ endchoice
 
 config SYS_BOARD
 	string "Board name"
-	default "mt7622" if TARGET_MT7622
-	default "mt7623" if TARGET_MT7623
-	default "mt7629" if TARGET_MT7629
-	default "mt7981" if TARGET_MT7981
-	default "mt7986" if TARGET_MT7986
-	default "mt7987" if TARGET_MT7987
-	default "mt7988" if TARGET_MT7988
-	default "mt8183" if TARGET_MT8183
-	default "mt8512" if TARGET_MT8512
-	default "mt8516" if TARGET_MT8516
-	default "mt8518" if TARGET_MT8518
-	default ""
+	# default "mt6589" if TARGET_MT6589 && !LEAVE_MEDIATEK
+	default "mt7622" if TARGET_MT7622 && !LEAVE_MEDIATEK
+	default "mt7623" if TARGET_MT7623 && !LEAVE_MEDIATEK
+	default "mt7629" if TARGET_MT7629 && !LEAVE_MEDIATEK
+	default "mt7981" if TARGET_MT7981 && !LEAVE_MEDIATEK
+	default "mt7986" if TARGET_MT7986 && !LEAVE_MEDIATEK
+	default "mt7987" if TARGET_MT7987 && !LEAVE_MEDIATEK
+	default "mt7988" if TARGET_MT7988 && !LEAVE_MEDIATEK
+	default "mt8183" if TARGET_MT8183 && !LEAVE_MEDIATEK
+	default "mt8512" if TARGET_MT8512 && !LEAVE_MEDIATEK
+	default "mt8516" if TARGET_MT8516 && !LEAVE_MEDIATEK
+	default "mt8518" if TARGET_MT8518 && !LEAVE_MEDIATEK
+	default "" if !LEAVE_MEDIATEK
 	help
 	  This option contains information about board name.
 	  Based on this option board/<CONFIG_SYS_VENDOR>/<CONFIG_SYS_BOARD> will
 	  be used.
 
 config SYS_CONFIG_NAME
+	default "mt6589" if TARGET_MT6589
 	default "mt7622" if TARGET_MT7622
 	default "mt7623" if TARGET_MT7623
 	default "mt7629" if TARGET_MT7629
@@ -164,5 +180,7 @@ config MTK_TZ_MOVABLE
 	select ARCH_MISC_INIT
 	select OF_SYSTEM_SETUP
 	bool
+
+source "arch/arm/mach-mediatek/mt6589/Kconfig"
 
 endif
