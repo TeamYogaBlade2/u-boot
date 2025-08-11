@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (c) 2025 akku
+ * Author: akku <akkun11.open@gmail.com>
+ *
+ */
+
+&system_clk {
+	bootph-all;
+};
+
+&rtc_clk {
+	bootph-all;
+};
+
+&uart_clk {
+	bootph-all;
+};
+
+&timer {
+	bootph-all;
+};
+
+&sysirq {
+	bootph-all;
+};
+
+&gic {
+	bootph-all;
+};
+
+/*
+&uart0 {
+	bootph-all;
+};
+*/
