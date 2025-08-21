@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 # based on https://github.com/catfish03/u-boot-mt65xx/blob/44dd1d7268b970ec30ce7aece87f2c57c8771e49/build_mt6572.sh
 
 export ARCH=arm
@@ -16,8 +16,8 @@ rm_prev_file() {
 
 build_uboot() {
   echo "building u-boot..."
-  make O=out yoga-tablet-10_defconfig
-  make O=out -j$(nproc --all)
+  make yoga-tablet-10_defconfig
+  make -j$(nproc --all)
   echo "u-boot build is done!"
 }
 
@@ -28,7 +28,7 @@ make_android_bootimg() {
   tools/mtk-mkimage ROOTFS /tmp/ramdisk-dummy /tmp/ramdisk-dummy.mtk
 
   echo "prepending the mtk kernel header to u-boot image..."
-  tools/mtk-mkimage KERNEL out/u-boot.bin /tmp/u-boot.bin.mtk
+  tools/mtk-mkimage KERNEL u-boot.bin /tmp/u-boot.bin.mtk
 
   echo "creating an android boot.img..."
   # mkbootimg-osm0sis --kernel /tmp/u-boot.bin.mtk --ramdisk /tmp/ramdisk-dummy.mtk -o u-boot-mtk.img
