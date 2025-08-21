@@ -9,7 +9,7 @@
 #ifndef __MT6589_H
 #define __MT6589_H
 
-// #define CFG_SYS_SDRAM_BASE 0x80000000
+#define CFG_SYS_SDRAM_BASE 0x80000000
 
 /* Probably the wrong */
 #define CFG_SYS_INIT_RAM_ADDR 0x81E00000

@@ -11,12 +11,7 @@ DECLARE_GLOBAL_DATA_PTR;
 void reset_cpu(void)
 {
 	/* TODO */
-}
-
-int dram_init(void)
-{
-	/* TODO */
-	return 0;
+	return;
 }
 
 int print_cpuinfo(void)
