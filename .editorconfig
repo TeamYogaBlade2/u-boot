@@ -1,0 +1,16 @@
+# top-most .editorconfig file
+root = true
+
+[*]
+# Indentation settings
+indent_style = tab
+indent_size = 8
+
+# Line ending settings
+end_of_line = lf
+
+# Character set settings
+charset = utf-8
+
+# Trims trailing whitespace on save
+trim_trailing_whitespace = true
