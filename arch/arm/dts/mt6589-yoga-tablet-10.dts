@@ -35,16 +35,17 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		ranges;
-	};
+		/* stdout-path = &framebuffer; */
 
-	framebuffer: framebuffer@bf600000 {
-		compatible = "simple-framebuffer";
-		reg = <0xbf600000 0x400000>;
-		width = <1280>;
-		height = <800>;
-		stride = <(1280 * 2)>;
-		format = "r5g6b5";
-		status = "okay";
+		framebuffer: framebuffer@bf600000 {
+			compatible = "simple-framebuffer";
+			reg = <0xbf600000 0x400000>;
+			width = <1280>;
+			height = <800>;
+			stride = <(1280 * 2)>;
+			format = "r5g6b5";
+			status = "okay";
+		};
 	};
 };
 
