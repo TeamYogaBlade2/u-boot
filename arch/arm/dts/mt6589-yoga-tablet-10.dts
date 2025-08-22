@@ -25,10 +25,10 @@
 		#size-cells = <1>;
 		ranges;
 
-		/* mtkfb_region: framebuffer@bf600000{ */
-		/* 	reg = <0xbf600000 0x400000>; */
-		/* 	no-map; */
-		/* }; */
+		mtkfb_region: framebuffer@bf600000{
+			reg = <0xbf600000 0x400000>;
+			no-map;
+		};
 	};
 
 	chosen {
@@ -44,7 +44,7 @@
 		height = <800>;
 		stride = <(1280 * 2)>;
 		format = "r5g6b5";
-		status = "okey";
+		status = "okay";
 	};
 };
 
