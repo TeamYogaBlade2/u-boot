@@ -1,7 +1,7 @@
-if TARGET_YOGA_TABLET_10
+if TARGET_LENOVO_BLADE
 
 config SYS_BOARD
-	default "yoga-tablet-10"
+	default "blade"
 
 config SYS_VENDOR
 	default "lenovo"

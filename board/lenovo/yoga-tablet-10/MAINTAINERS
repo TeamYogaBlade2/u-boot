@@ -1,7 +1,0 @@
-Lenovo YOGA Tablet 10
-M:	akku <akkun11.open@gmail.com>
-S:	Maintained
-F:	board/lenovo/yoga-tablet-10/
-F:	configs/yoga-tablet-10_defconfig
-F:	include/configs/mt6589.h
-F:	arch/arm/mach-mediatek/mt6589

@@ -10,8 +10,8 @@
 #include "mt6589-uboot.dtsi"
 
 / {
-	model = "Lenovo YOGA Tablet 10";
-	compatible = "lenovo,yoga-tablet-10", "mediatek,mt6589";
+	model = "Lenovo YOGA Tablet 8/10";
+	compatible = "lenovo,blade", "mediatek,mt6589";
 
 	memory {
 		#address-cells = <1>;

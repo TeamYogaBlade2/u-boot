@@ -4,14 +4,14 @@ choice
 	prompt "MT6589 board select"
 	optional
 
-config TARGET_YOGA_TABLET_10
-	bool "Lenovo YOGA Tablet 10 board"
+config TARGET_LENOVO_BLADE
+	bool "Lenovo YOGA Tablet 8/10 board"
 
 endchoice
 
 config SYS_SOC
 	default "mt6589"
 
-source "board/lenovo/yoga-tablet-10/Kconfig"
+source "board/lenovo/blade/Kconfig"
 
 endif

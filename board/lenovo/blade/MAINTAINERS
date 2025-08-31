@@ -1,0 +1,6 @@
+Lenovo YOGA Tablet 10
+M:	akku <akkun11.open@gmail.com>
+S:	Maintained
+F:	board/lenovo/blade/
+F:	configs/lenovo-blade_defconfig
+F:	arch/arm/dts/mt6589-lenovo-blade.dts

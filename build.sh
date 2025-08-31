@@ -16,7 +16,7 @@ rm_prev_file() {
 
 build_uboot() {
   echo "building u-boot..."
-  make yoga-tablet-10_defconfig
+  make lenovo-blade_defconfig
   make -j$(nproc --all)
   echo "u-boot build is done!"
 }
