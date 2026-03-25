@@ -13,6 +13,9 @@
 	chosen {
 		#address-cells = <1>;
 		#size-cells = <1>;
+
+		stdout-path = "vidconsole";
+
 		framebuffer0: framebuffer@bf600000 {
 			compatible = "simple-framebuffer";
 			reg = <0xbf600000 0x400000>;
@@ -45,5 +48,13 @@
 
 /* dummy */
 &uart0 {
+	status = "okay";
+};
+
+&usb0 {
+	status = "okay";
+};
+
+&usb_port0 {
 	status = "okay";
 };
