@@ -9,6 +9,15 @@ config SYS_VENDOR
 choice
 	prompt "MediaTek board select"
 
+config TARGET_MT6589
+	bool "MediaTek MT6589 SoC"
+	select CPU_V7A
+	select MMC_SUPPORTS_TUNING
+	help
+	  The MediaTek MT6589 is a ARM-based SoC with a quad-core Cortex-A7
+	  including NEON and GPU, PowerVR SGX544, and so on.
+	  This target is compatible with MT8125, MT8389.
+
 config TARGET_MT7622
 	bool "MediaTek MT7622 SoC"
 	select ARM64
@@ -132,6 +141,7 @@ endchoice
 
 config SYS_BOARD
 	string "Board name"
+	default "mt6589" if TARGET_MT6589
 	default "mt7622" if TARGET_MT7622
 	default "mt7623" if TARGET_MT7623
 	default "mt7629" if TARGET_MT7629
@@ -150,6 +160,7 @@ config SYS_BOARD
 	  be used.
 
 config SYS_CONFIG_NAME
+	default "mt6589" if TARGET_MT6589
 	default "mt7622" if TARGET_MT7622
 	default "mt7623" if TARGET_MT7623
 	default "mt7629" if TARGET_MT7629
