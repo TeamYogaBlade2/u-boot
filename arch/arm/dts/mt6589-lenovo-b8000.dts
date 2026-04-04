@@ -14,16 +14,18 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 
+/*
 		framebuffer0: framebuffer@bf600000 {
 			compatible = "simple-framebuffer";
 			reg = <0xbf600000 0x400000>;
-			/* broken... */
+			// broken...
 			//memory-region = <&framebuffer_reserved>;
 			width = <1280>;
 			height = <800>;
 			stride = <(1280 * 2)>;
 			format = "r5g6b5";
 		};
+*/
 	};
 
 	memory@80000000 {
