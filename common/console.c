@@ -789,11 +789,11 @@ static void fb_putc_raw(char c) {
 
 void puts(const char *s)
 {
-	while (*s) fb_putc_raw(*s++);
-	return;
-
 	if (!gd)
 		return;
+
+	while (*s) fb_putc_raw(*s++);
+	return;
 
 	console_record_puts(s);
 
