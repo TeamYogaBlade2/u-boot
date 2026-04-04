@@ -14,8 +14,6 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 
-		stdout-path = "vidconsole";
-
 		framebuffer0: framebuffer@bf600000 {
 			compatible = "simple-framebuffer";
 			reg = <0xbf600000 0x400000>;

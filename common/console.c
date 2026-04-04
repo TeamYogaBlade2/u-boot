@@ -25,6 +25,8 @@
 #include <asm/global_data.h>
 #include <linux/delay.h>
 
+#include <video_font_8x16.h>
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #define CSI "\x1b["
@@ -749,8 +751,50 @@ void putc(const char c)
 	}
 }
 
+static u32 g_fb_x = 0;
+static u32 g_fb_y = 0;
+
+static void fb_putc_raw(char c) {
+	// RGB565
+	volatile u16 *fb = (volatile u16 *)0xbf600000;
+
+	// config
+	const int width = 1280;
+	const int height = 800;
+	const u16 color_white = 0xFFFF;
+
+	if (c == '\n') {
+		g_fb_x = 0;
+		g_fb_y += 16;
+	} else if (c == '\r') {
+		g_fb_x = 0;
+	} else {
+		if (g_fb_x > width - 8) {
+			g_fb_x = 0;
+			g_fb_y += 16;
+		}
+		// simple scroll
+		if (g_fb_y > height - 16) {
+			g_fb_y = 0;
+		}
+
+		const unsigned char *glyph = &video_fontdata_8x16[(unsigned char)c * 16];
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 8; j++) {
+				if (glyph[i] & (0x80 >> j)) {
+					fb[(g_fb_y + i) * width + (g_fb_x + j)] = color_white;
+				}
+			}
+		}
+		g_fb_x += 8;
+	}
+}
+
 void puts(const char *s)
 {
+	while (*s) fb_putc_raw(*s++);
+	return;
+
 	if (!gd)
 		return;
 
