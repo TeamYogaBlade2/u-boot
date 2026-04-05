@@ -22,16 +22,32 @@
 #include <linux/err.h>
 #include <linux/printk.h>
 
+#include <linux/string.h>
 #include <video_font_8x16.h>
+#include <linux/delay.h>
+#include <cpu_func.h>
 
-static void fb_putc_raw(char c) {
-	// RGB565
+static void fb_scroll(void) {
 	volatile u16 *fb = (volatile u16 *)0xbf600000;
-
-	// config
 	const int width = 1280;
 	const int height = 800;
-	const u16 color_white = 0xFFFF;
+	const int line_height = 16;
+
+	const size_t line_bytes = width * sizeof(u16);
+	const size_t move_size = (height - line_height) * line_bytes;
+
+	memmove((void *)fb, (const void *)(fb + (line_height * width)), move_size);
+
+	u16 *last_line_ptr = (u16 *)fb + (height - line_height) * width;
+	memset((void *)last_line_ptr, 0, line_bytes * line_height);
+}
+
+static void fb_putc_raw(char c) {
+	volatile u16 *fb = (volatile u16 *)0xbf600000;
+	const int width = 1280;
+	const int height = 800;
+	const u16 color_fg = 0xffff;
+	const u16 color_bg = 0x0000;
 
 	if (c == '\n') {
 		gd->fb_x = 0;
@@ -43,21 +59,34 @@ static void fb_putc_raw(char c) {
 			gd->fb_x = 0;
 			gd->fb_y += 16;
 		}
-		// simple scroll
+
 		if (gd->fb_y > height - 16) {
-			gd->fb_y = 0;
+			fb_scroll();
+			gd->fb_y = height - 16;
+			//gd->fb_y = 0;
 		}
 
 		const unsigned char *glyph = &video_fontdata_8x16[(unsigned char)c * 16];
 		for (int i = 0; i < 16; i++) {
 			for (int j = 0; j < 8; j++) {
 				if (glyph[i] & (0x80 >> j)) {
-					fb[(gd->fb_y + i) * width + (gd->fb_x + j)] = color_white;
+					fb[(gd->fb_y + i) * width + (gd->fb_x + j)] = color_fg;
+				} else {
+					fb[(gd->fb_y + i) * width + (gd->fb_x + j)] = color_bg;
 				}
 			}
 		}
 		gd->fb_x += 8;
 	}
+
+	if (gd->fb_y > height - 16) {
+		fb_scroll();
+		gd->fb_y = height - 16;
+		//gd->fb_y = 0;
+	}
+
+	flush_dcache_range(0xbf600000, 0xbfa00000);
+	mdelay(10);
 }
 
 struct mtk_serial_regs {
