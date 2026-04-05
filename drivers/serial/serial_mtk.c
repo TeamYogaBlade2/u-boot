@@ -22,6 +22,44 @@
 #include <linux/err.h>
 #include <linux/printk.h>
 
+#include <video_font_8x16.h>
+
+static void fb_putc_raw(char c) {
+	// RGB565
+	volatile u16 *fb = (volatile u16 *)0xbf600000;
+
+	// config
+	const int width = 1280;
+	const int height = 800;
+	const u16 color_white = 0xFFFF;
+
+	if (c == '\n') {
+		gd->fb_x = 0;
+		gd->fb_y += 16;
+	} else if (c == '\r') {
+		gd->fb_x = 0;
+	} else {
+		if (gd->fb_x > width - 8) {
+			gd->fb_x = 0;
+			gd->fb_y += 16;
+		}
+		// simple scroll
+		if (gd->fb_y > height - 16) {
+			gd->fb_y = 0;
+		}
+
+		const unsigned char *glyph = &video_fontdata_8x16[(unsigned char)c * 16];
+		for (int i = 0; i < 16; i++) {
+			for (int j = 0; j < 8; j++) {
+				if (glyph[i] & (0x80 >> j)) {
+					fb[(gd->fb_y + i) * width + (gd->fb_x + j)] = color_white;
+				}
+			}
+		}
+		gd->fb_x += 8;
+	}
+}
+
 struct mtk_serial_regs {
 	u32 rbr;
 	u32 ier;
@@ -226,6 +264,8 @@ static int mtk_serial_setbrg(struct udevice *dev, int baudrate)
 
 static int mtk_serial_putc(struct udevice *dev, const char ch)
 {
+	fb_putc_raw(ch);
+
 	struct mtk_serial_priv *priv = dev_get_priv(dev);
 
 	return _mtk_serial_putc(priv, ch);
