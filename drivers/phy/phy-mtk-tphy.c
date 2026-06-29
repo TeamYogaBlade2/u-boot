@@ -104,7 +104,12 @@
 
 #define U3P_U2PHYDTM1			0x06C
 #define P2C_RG_UART_EN			BIT(16)
+#define P2C_FORCE_VBUSVALID		BIT(13)
+#define P2C_FORCE_SESSEND		BIT(12)
+#define P2C_FORCE_BVALID		BIT(11)
+#define P2C_FORCE_AVALID		BIT(10)
 #define P2C_FORCE_IDDIG			BIT(9)
+#define P2C_FORCE_IDPULLUP		BIT(8)
 #define P2C_RG_VBUSVALID		BIT(5)
 #define P2C_RG_SESSEND			BIT(4)
 #define P2C_RG_AVALID			BIT(2)
@@ -245,6 +250,7 @@ struct u2phy_banks {
 	void __iomem *misc;
 	void __iomem *fmreg;
 	void __iomem *com;
+	void __iomem *com_ext;
 };
 
 struct u3phy_banks {
@@ -280,6 +286,7 @@ struct mtk_phy_instance {
 struct mtk_tphy {
 	struct udevice *dev;
 	void __iomem *sif_base;
+	void __iomem *sif_ext_base;
 	const struct tphy_pdata *pdata;
 	struct mtk_phy_instance **phys;
 	int nphys;
@@ -312,18 +319,18 @@ static void u2_phy_instance_init(struct mtk_tphy *tphy,
 	struct u2phy_banks *u2_banks = &instance->u2_banks;
 
 	/* switch to USB function, and enable usb pll */
-	clrsetbits_le32(u2_banks->com + U3P_U2PHYDTM0,
+	clrsetbits_le32(u2_banks->com_ext + U3P_U2PHYDTM0,
 			P2C_FORCE_UART_EN | P2C_FORCE_SUSPENDM,
 			FIELD_PREP(P2C_RG_XCVRSEL, 1) |
 			FIELD_PREP(P2C_RG_DATAIN, 0));
 
-	clrbits_le32(u2_banks->com + U3P_U2PHYDTM1, P2C_RG_UART_EN);
+	clrbits_le32(u2_banks->com_ext + U3P_U2PHYDTM1, P2C_RG_UART_EN);
 	setbits_le32(u2_banks->com + U3P_USBPHYACR0, PA0_RG_USB20_INTR_EN);
 
 	/* disable switch 100uA current to SSUSB */
 	clrbits_le32(u2_banks->com + U3P_USBPHYACR5, PA5_RG_U2_HS_100U_U3_EN);
 
-	clrbits_le32(u2_banks->com + U3P_U2PHYACR4, P2C_U2_GPIO_CTR_MSK);
+	clrbits_le32(u2_banks->com_ext + U3P_U2PHYACR4, P2C_U2_GPIO_CTR_MSK);
 
 	/* DP/DM BC1.1 path Disable */
 	clrsetbits_le32(u2_banks->com + U3P_USBPHYACR6,
@@ -337,6 +344,11 @@ static void u2_phy_instance_init(struct mtk_tphy *tphy,
 
 	u2_phy_pll_26m_set(tphy, instance);
 
+	setbits_le32(u2_banks->com_ext + U3P_U2PHYDTM1,
+			 P2C_FORCE_IDPULLUP | P2C_FORCE_AVALID |
+				 P2C_FORCE_BVALID | P2C_FORCE_SESSEND |
+				 P2C_FORCE_VBUSVALID);
+
 	dev_dbg(tphy->dev, "%s(%d)\n", __func__, instance->index);
 }
 
@@ -345,14 +357,14 @@ static void u2_phy_instance_power_on(struct mtk_tphy *tphy,
 {
 	struct u2phy_banks *u2_banks = &instance->u2_banks;
 
-	clrbits_le32(u2_banks->com + U3P_U2PHYDTM0,
+	clrbits_le32(u2_banks->com_ext + U3P_U2PHYDTM0,
 		     P2C_RG_XCVRSEL | P2C_RG_DATAIN | P2C_DTM0_PART_MASK);
 
 	/* OTG Enable */
 	setbits_le32(u2_banks->com + U3P_USBPHYACR6,
 		     PA6_RG_U2_OTG_VBUSCMP_EN);
 
-	clrsetbits_le32(u2_banks->com + U3P_U2PHYDTM1,
+	clrsetbits_le32(u2_banks->com_ext + U3P_U2PHYDTM1,
 			P2C_RG_SESSEND, P2C_RG_VBUSVALID | P2C_RG_AVALID);
 
 	dev_dbg(tphy->dev, "%s(%d)\n", __func__, instance->index);
@@ -363,14 +375,14 @@ static void u2_phy_instance_power_off(struct mtk_tphy *tphy,
 {
 	struct u2phy_banks *u2_banks = &instance->u2_banks;
 
-	clrbits_le32(u2_banks->com + U3P_U2PHYDTM0,
+	clrbits_le32(u2_banks->com_ext + U3P_U2PHYDTM0,
 		     P2C_RG_XCVRSEL | P2C_RG_DATAIN);
 
 	/* OTG Disable */
 	clrbits_le32(u2_banks->com + U3P_USBPHYACR6,
 		     PA6_RG_U2_OTG_VBUSCMP_EN);
 
-	clrsetbits_le32(u2_banks->com + U3P_U2PHYDTM1,
+	clrsetbits_le32(u2_banks->com_ext + U3P_U2PHYDTM1,
 			P2C_RG_VBUSVALID | P2C_RG_AVALID, P2C_RG_SESSEND);
 
 	dev_dbg(tphy->dev, "%s(%d)\n", __func__, instance->index);
@@ -547,6 +559,7 @@ static void phy_v1_banks_init(struct mtk_tphy *tphy,
 		u2_banks->misc = NULL;
 		u2_banks->fmreg = tphy->sif_base + SSUSB_SIFSLV_V1_U2FREQ;
 		u2_banks->com = instance->port_base + SSUSB_SIFSLV_V1_U2PHY_COM;
+		u2_banks->com_ext = tphy->sif_ext_base ? tphy->sif_ext_base : u2_banks->com;
 		break;
 	case PHY_TYPE_USB3:
 	case PHY_TYPE_PCIE:
@@ -575,6 +588,7 @@ static void phy_v2_banks_init(struct mtk_tphy *tphy,
 		u2_banks->misc = instance->port_base + SSUSB_SIFSLV_V2_MISC;
 		u2_banks->fmreg = instance->port_base + SSUSB_SIFSLV_V2_U2FREQ;
 		u2_banks->com = instance->port_base + SSUSB_SIFSLV_V2_U2PHY_COM;
+		u2_banks->com_ext = u2_banks->com;
 		break;
 	case PHY_TYPE_USB3:
 	case PHY_TYPE_PCIE:
@@ -852,8 +866,10 @@ static int mtk_tphy_probe(struct udevice *dev)
 
 	/* v1 has shared banks for usb/pcie mode, */
 	/* but not for sata mode */
-	if (tphy->pdata->version == MTK_TPHY_V1)
-		tphy->sif_base = dev_read_addr_ptr(dev);
+	if (tphy->pdata->version == MTK_TPHY_V1) {
+		tphy->sif_base = dev_read_addr_index_ptr(dev, 0);
+		tphy->sif_base = dev_read_addr_index_ptr(dev, 1);
+	}
 
 	dev_for_each_subnode(subnode, dev) {
 		struct mtk_phy_instance *instance;

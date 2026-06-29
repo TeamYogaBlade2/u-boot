@@ -9,6 +9,22 @@ config SYS_VENDOR
 choice
 	prompt "MediaTek board select"
 
+config TARGET_MT6595
+	bool "MediaTek MT6595 SoC"
+	select CPU_V7A
+	select CPU_V7_HAS_NONSEC
+	select CPU_V7_HAS_VIRT
+	select ARMV7_NONSEC
+	select ARCH_SUPPORT_PSCI
+	select HAS_ARMV7_SECURE_BASE
+	select MMC_SUPPORTS_TUNING
+	help
+	  The MediaTek MT6595 is a ARM-based SoC with a quad-core Cortex-A7
+	  and quad-core Cortex-A17 including NEON and GPU, PoorVR graphics,
+	  crypto engine, JPEG decoder, video interfaces supporting MIPI,
+	  and video codec support.
+	  Peripherals USB3.0 and OTG, I2S, PCM, UART, SPI, I2C, IR TX, and PWM.
+
 config TARGET_MT7622
 	bool "MediaTek MT7622 SoC"
 	select ARM64
@@ -177,6 +193,7 @@ endif
 
 config SYS_BOARD
 	string "Board name"
+	default "mt6595" if TARGET_MT6595
 	default "mt7622" if TARGET_MT7622
 	default "mt7623" if TARGET_MT7623
 	default "mt7629" if TARGET_MT7629
@@ -195,6 +212,7 @@ config SYS_BOARD
 	  be used.
 
 config SYS_CONFIG_NAME
+	default "mt6595" if TARGET_MT6595
 	default "mt7623" if TARGET_MT7623
 	default "mt7629" if TARGET_MT7629
 	default "mt7981" if TARGET_MT7981

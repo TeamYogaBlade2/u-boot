@@ -1,0 +1,83 @@
+// SPDX-License-Identifier: GPL-2.0
+
+/dts-v1/;
+#include "mt6595.dtsi"
+#include "mt6331.dtsi"
+
+/ {
+	model = "Lenovo Vibe X2";
+	compatible = "lenovo,x2eu", "mediatek,mt6595";
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	chosen {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		stdout-path = "serial0:921600n8";
+	};
+
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0x40000000 0x80000000>;
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		mrdump_mini@43ff0000 {
+			reg = <0x43ff0000 0xe000>;
+			no-map;
+		};
+
+		dfs@7ffff000 {
+			reg = <0x7ffff000 0x2000>;
+			no-map;
+		};
+
+		modem@b8000000 {
+			reg = <0xb8000000 0x5200000>;
+			no-map;
+		};
+
+		framebuffer@bdc00000 {
+			reg = <0xbdc00000 0x2400000>;
+			no-map;
+		};
+	};
+};
+
+&i2c0 {
+	status = "okay";
+};
+
+&i2c1 {
+	status = "okay";
+};
+
+&i2c2 {
+	status = "okay";
+};
+
+&i2c3 {
+	status = "okay";
+};
+
+&usb {
+	status = "okay";
+};
+
+&ssusb {
+	mediatek,force-vbus;
+	mediatek,u3p-dis-msk = <1>;
+	maximum-speed = "high-speed";
+	dr_mode = "peripheral";
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
