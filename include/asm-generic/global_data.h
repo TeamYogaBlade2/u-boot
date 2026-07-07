@@ -448,10 +448,6 @@ struct global_data {
 	 */
 	struct upl *upl;
 #endif
-
-	/* HACK */
-	u32 fb_x;
-	u32 fb_y;
 };
 #ifndef DO_DEPS_ONLY
 static_assert(sizeof(struct global_data) == GD_SIZE);
