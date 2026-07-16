@@ -48,9 +48,8 @@ config APPLE_SPI_KEYB
 
 config BUTTON_KEYBOARD
 	bool "Buttons as keyboard"
-	depends on DM_KEYBOARD && DM_GPIO
+	depends on DM_KEYBOARD
 	select BUTTON
-	select BUTTON_GPIO
 	help
 	  Enable support for mapping buttons to keycode events. Use linux,code button driver
 	  dt node to define button-event mapping.
@@ -96,6 +95,13 @@ config I8042_KEYB
 	  driver handles English and German keyboards - set the environment
 	  variable 'keymap' to "de" to select German. Keyboard repeat is
 	  handled by the keyboard itself.
+
+config MEDIATEK_KEYBOARD
+	bool "MediaTek Keypad support"
+	depends on ARCH_MEDIATEK
+	help
+	  Say Y here if you want to use the keypad on MediaTek SoCs.
+	  If unsure, say N.
 
 config TEGRA_KEYBOARD
 	bool "NVIDIA Tegra internal matrix keyboard controller support"

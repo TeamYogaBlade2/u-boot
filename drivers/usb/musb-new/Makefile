@@ -9,12 +9,14 @@ obj-$(CONFIG_USB_MUSB_DSPS) += musb_dsps.o
 obj-$(CONFIG_USB_MUSB_DA8XX)	+= da8xx.o
 obj-$(CONFIG_USB_MUSB_AM35X) += am35x.o
 obj-$(CONFIG_USB_MUSB_MT85XX) += mt85xx.o
+obj-$(CONFIG_USB_MUSB_MEDIATEK) += mediatek.o
 obj-$(CONFIG_USB_MUSB_OMAP2PLUS) += omap2430.o
 obj-$(CONFIG_USB_MUSB_PIC32) += pic32.o
 obj-$(CONFIG_USB_MUSB_SUNXI) += sunxi.o
 obj-$(CONFIG_USB_MUSB_TI) += ti-musb.o
 obj-$(CONFIG_USB_MUSB_UX500) += ux500.o
 obj-$(CONFIG_USB_MUSB_SC5XX) += sc5xx.o
+obj-$(CONFIG_USB_INVENTRA_DMA) += musbhsdma.o
 
 ccflags-y := $(call cc-option,-Wno-unused-variable) \
 		$(call cc-option,-Wno-unused-but-set-variable) \
