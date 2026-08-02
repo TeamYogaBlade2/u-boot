@@ -11,6 +11,8 @@
 #include <regmap.h>
 #include <syscon.h>
 
+#define SPM_PROJECT_CODE		0x0000
+
 #define SPM_VDE_PWR_CON			0x0210
 #define SPM_MFG_PWR_CON			0x0214
 #define SPM_VEN_PWR_CON			0x0230
@@ -95,6 +97,7 @@ struct scpsys_domain_data {
 struct scpsys_soc_data {
 	const struct scpsys_domain_data *domains_data;
 	int num_domains;
+	int projet_code;
 };
 
 struct mtk_power_domain_priv {
@@ -316,6 +319,9 @@ static int mtk_power_domain_probe(struct udevice *dev)
 	if (IS_ERR(priv->infracfg))
 		return PTR_ERR(priv->infracfg);
 
+	if (priv->soc_data->projet_code != 0)
+		regmap_write(priv->base, SPM_PROJECT_CODE, priv->soc_data->projet_code);
+
 	return 0;
 }
 
@@ -359,6 +365,7 @@ static const struct scpsys_domain_data mt6572_domain_data[] = {
 static const struct scpsys_soc_data mt6572_scpsys_data = {
 	.domains_data = mt6572_domain_data,
 	.num_domains = ARRAY_SIZE(mt6572_domain_data),
+	.projet_code = 0xb160001,
 };
 
 static const struct udevice_id mtk_power_domain_ids[] = {
