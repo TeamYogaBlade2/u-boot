@@ -64,7 +64,14 @@ config IMX8MP_MEDIAMIX_BLKCTRL
 
 config MTK_POWER_DOMAIN
 	bool "Enable the MediaTek power domain driver"
-	depends on POWER_DOMAIN && ARCH_MEDIATEK
+	depends on POWER_DOMAIN && ARCH_MEDIATEK && !TARGET_MT6572
+	help
+	  Enable support for manipulating MediaTek power domains via MMIO
+	  mapped registers.
+
+config MTK_POWER_DOMAIN_NEW
+	bool "Enable MediaTek Linux power domain driver"
+	depends on POWER_DOMAIN && ARCH_MEDIATEK && TARGET_MT6572
 	help
 	  Enable support for manipulating MediaTek power domains via MMIO
 	  mapped registers.
