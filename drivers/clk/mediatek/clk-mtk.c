@@ -168,6 +168,23 @@ static int mtk_gate_disable(void __iomem *base, const struct mtk_gate *gate)
 	return 0;
 }
 
+static bool mtk_gate_is_enabled(void __iomem *base, const struct mtk_gate *gate)
+{
+	u32 bit = BIT(gate->shift);
+
+	switch (gate->flags & CLK_GATE_MASK) {
+	case CLK_GATE_NO_SETCLR:
+	case CLK_GATE_SETCLR:
+		return !(readl(base + gate->regs->sta_ofs) & bit);
+	case CLK_GATE_SETCLR_INV:
+	case CLK_GATE_NO_SETCLR_INV:
+		return readl(base + gate->regs->sta_ofs) & bit;
+
+	default:
+		return false;
+	}
+}
+
 static ulong mtk_ext_clock_get_rate(const struct mtk_clk_tree *tree, int id)
 {
 	if (!tree->ext_clk_rates || id >= tree->num_ext_clks)
@@ -1028,6 +1045,7 @@ static void mtk_infrasys_dump(struct udevice *dev)
 
 		printf("[MUX%u] DT: %u", i, mux->id);
 		mtk_clk_print_mapped_id(mux->id, i + tree->muxes_offs, tree->id_offs_map);
+		mtk_clk_print_rate(dev, i + tree->muxes_offs);
 		mtk_clk_print_mux_parents(priv, mux);
 		printf("\n");
 	}
@@ -1037,7 +1055,15 @@ static void mtk_infrasys_dump(struct udevice *dev)
 
 		printf("[GATE%u] DT: %u", i, gate->id);
 		mtk_clk_print_mapped_id(gate->id, i + tree->gates_offs, tree->id_offs_map);
+		mtk_clk_print_rate(dev, i + tree->gates_offs);
 		mtk_clk_print_single_parent(gate->parent, gate->flags);
+
+		if (mtk_gate_is_enabled(priv->base, gate)) {
+			printf(" State: Enabled");
+		} else {
+			printf(" State: Disabled");
+		}
+
 		printf("\n");
 	}
 }
